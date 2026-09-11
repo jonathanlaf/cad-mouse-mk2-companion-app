@@ -61,7 +61,7 @@ function scenarioValue(s: string, a: Axis, t: number) {
     );
   if (s === "jitter")
     return Math.sin(t * 18 + p) * 10 + Math.sin(t * 2 + p) * 5;
-  return Math.sin(t * 0.3 + p) * 2;
+  return 0;
 }
 
 function App() {
@@ -247,7 +247,9 @@ function App() {
                     </div>
                   </div>
                   <div
-                    className={`cube-stage ${viewMode} ${opaqueCube ? "opaque" : ""} ${simulationRunning && viewPlane === "perspective" && !draggingCube ? "auto-orbit" : ""}`}
+                    className={`cube-stage ${viewMode} ${opaqueCube ? "opaque" : ""} ${simulationRunning && scenario !== "idle" && viewPlane === "perspective" && !draggingCube ? "auto-orbit" : ""}`}
+                    onSelect={(e) => e.preventDefault()}
+                    onDragStart={(e) => e.preventDefault()}
                     onPointerDown={(e) => {
                       if (e.button !== 0 && e.button !== 1) return;
                       e.currentTarget.setPointerCapture(e.pointerId);
