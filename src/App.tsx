@@ -278,7 +278,7 @@ function App() {
                     <div
                       className="cube"
                       style={{
-                        transform: `translate(${cubeOffset.x}px, ${cubeOffset.y}px) scale(${cubeZoom}) rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
+                        transform: `translate(${cubeOffset.x / cubeZoom}px, ${cubeOffset.y / cubeZoom}px) scale(${cubeZoom}) rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
                       }}
                     >
                       {["front", "back", "right", "left", "top", "bottom"].map(
