@@ -76,6 +76,7 @@ function App() {
   );
   const [selectedAxis, setSelectedAxis] = useState<Axis>("Tx");
   const [cube, setCube] = useState({ x: 0, y: 0, z: 0 });
+  const [cubeZoom, setCubeZoom] = useState(1);
   const [draggingCube, setDraggingCube] = useState(false);
   const dragStart = useRef({ pointerX: 0, pointerY: 0, cubeX: 0, cubeY: 0 });
   useEffect(() => {
@@ -242,6 +243,12 @@ function App() {
                       };
                       setDraggingCube(true);
                     }}
+                    onWheel={(e) => {
+                      e.preventDefault();
+                      setCubeZoom((current) =>
+                        Math.min(2.5, Math.max(0.5, current - e.deltaY * 0.001)),
+                      );
+                    }}
                     onPointerMove={(e) => {
                       if (draggingCube)
                         setCube((current) => ({
@@ -259,7 +266,7 @@ function App() {
                     <div
                       className="cube"
                       style={{
-                        transform: `rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
+                        transform: `scale(${cubeZoom}) rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
                       }}
                     >
                       {["front", "back", "right", "left", "top", "bottom"].map(
