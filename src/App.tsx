@@ -254,7 +254,7 @@ function App() {
                         y: e.clientY - (rect.top + rect.height / 2),
                       };
                       setCubeView((current) => {
-                        const next = Math.min(2.5, Math.max(0.5, current.zoom - e.deltaY * 0.001));
+                        const next = Math.min(8, Math.max(0.25, current.zoom - e.deltaY * 0.001));
                         const ratio = next / current.zoom;
                         return { zoom: next, offset: {
                           x: pointer.x - (pointer.x - current.offset.x) * ratio,
