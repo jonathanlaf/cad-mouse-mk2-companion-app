@@ -76,6 +76,7 @@ function App() {
   );
   const [selectedAxis, setSelectedAxis] = useState<Axis>("Tx");
   const [cube, setCube] = useState({ x: 0, y: 0, z: 0 });
+  const [draggingCube, setDraggingCube] = useState(false);
   useEffect(() => {
     if (!simulationRunning) return;
     const start = performance.now();
@@ -85,14 +86,16 @@ function App() {
         axes.map((a) => [a, scenarioValue(scenario, a, t)]),
       ) as Record<Axis, number>;
       setSamples((o) => [...o.slice(-119), { time: t, values }]);
-      setCube({
-        x: values.Rx * 0.18,
-        y: values.Ry * 0.18,
-        z: values.Rz * 0.18,
-      });
+      if (!draggingCube) {
+        setCube({
+          x: values.Rx * 0.18,
+          y: values.Ry * 0.18,
+          z: values.Rz * 0.18,
+        });
+      }
     }, 100);
     return () => clearInterval(id);
-  }, [scenario, simulationRunning]);
+  }, [scenario, simulationRunning, draggingCube]);
   const latest = samples.at(-1)?.values;
   const curvePoints = useMemo(
     () => Array.from({ length: 41 }, (_, i) => i / 40),
@@ -240,16 +243,23 @@ function App() {
                   </div>
                   <div
                     className={`cube-stage ${viewMode}`}
-                    onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+                    onPointerDown={(e) => {
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      setDraggingCube(true);
+                    }}
                     onPointerMove={(e) => {
-                      if (e.buttons)
+                      if (draggingCube)
                         setCube((current) => ({
                           x: current.x + e.movementY,
                           y: current.y + e.movementX,
                           z: current.z,
                         }));
                     }}
-                    onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
+                    onPointerUp={(e) => {
+                      e.currentTarget.releasePointerCapture(e.pointerId);
+                      setDraggingCube(false);
+                    }}
+                    onPointerCancel={() => setDraggingCube(false)}
                   >
                     <div className="axis-reference" aria-label="X Y Z orientation reference">
                       <div className="plane-grid" />

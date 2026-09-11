@@ -148,7 +148,7 @@ aside button.nav-selected {
   z-index: 1;
 }
 .cube b {
-  border: 0;
+  border: 1px solid #65d9ff;
   backface-visibility: visible;
 }
 .cube-stage.isometric {
