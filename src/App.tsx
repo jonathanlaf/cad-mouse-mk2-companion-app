@@ -233,6 +233,7 @@ function App() {
                     className={`cube-stage ${viewMode}`}
                     onPointerDown={(e) => {
                       e.currentTarget.setPointerCapture(e.pointerId);
+                      setSimulationRunning(false);
                       dragStart.current = {
                         pointerX: e.clientX,
                         pointerY: e.clientY,
