@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import "./App.css";
 import "./layout.css";
 import "./fullscreen.css";
@@ -166,17 +168,24 @@ function App() {
     };
     if (rotations[plane]) setCube(rotations[plane]);
   };
-  const exportProfile = () => {
-    const u = URL.createObjectURL(
-      new Blob([JSON.stringify(profile, null, 2)], {
-        type: "application/json",
-      }),
-    );
-    const a = document.createElement("a");
-    a.href = u;
-    a.download = `${profile.name}.json`;
-    a.click();
-    URL.revokeObjectURL(u);
+  const exportProfile = async () => {
+    const contents = JSON.stringify(profile, null, 2);
+    try {
+      const path = await save({
+        title: "Export mouse profile",
+        defaultPath: `${profile.name || "profile"}.json`,
+        filters: [{ name: "JSON profile", extensions: ["json"] }],
+      });
+      if (path) await writeTextFile(path, contents);
+    } catch {
+      // Keep the browser/Vite preview useful when it is not running in Tauri.
+      const u = URL.createObjectURL(new Blob([contents], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = u;
+      a.download = `${profile.name || "profile"}.json`;
+      a.click();
+      URL.revokeObjectURL(u);
+    }
   };
   const importProfile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
