@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import "./layout.css";
 import "./fullscreen.css";
+import "./cube-options.css";
 
 type Axis = "Tx" | "Ty" | "Tz" | "Rx" | "Ry" | "Rz";
 type Sample = { time: number; values: Record<Axis, number> };
@@ -80,6 +81,7 @@ function App() {
   const [cubeView, setCubeView] = useState({ zoom: 1, offset: { x: 0, y: 0 } });
   const [cubeFullscreen, setCubeFullscreen] = useState(false);
   const [viewPlane, setViewPlane] = useState("perspective");
+  const [opaqueCube, setOpaqueCube] = useState(false);
   const [draggingCube, setDraggingCube] = useState(false);
   const [panningCube, setPanningCube] = useState(false);
   const dragStart = useRef({ pointerX: 0, pointerY: 0, cubeX: 0, cubeY: 0 });
@@ -241,10 +243,11 @@ function App() {
                         {viewMode === "perspective" ? "Isometric" : "Perspective"}
                       </button>
                       <button className="button secondary" onClick={() => setCubeFullscreen(!cubeFullscreen)}>{cubeFullscreen ? "Exit fullscreen" : "Fullscreen"}</button>
+                      <button className="button secondary" onClick={() => setOpaqueCube(!opaqueCube)}>{opaqueCube ? "Transparent sides" : "Opaque sides"}</button>
                     </div>
                   </div>
                   <div
-                    className={`cube-stage ${viewMode} ${simulationRunning && viewPlane === "perspective" && !draggingCube ? "auto-orbit" : ""}`}
+                    className={`cube-stage ${viewMode} ${opaqueCube ? "opaque" : ""} ${simulationRunning && viewPlane === "perspective" && !draggingCube ? "auto-orbit" : ""}`}
                     onPointerDown={(e) => {
                       if (e.button !== 0 && e.button !== 1) return;
                       e.currentTarget.setPointerCapture(e.pointerId);
