@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import "./layout.css";
+import "./reference.css";
 
 type Axis = "Tx" | "Ty" | "Tz" | "Rx" | "Ry" | "Rz";
 type Sample = { time: number; values: Record<Axis, number> };
