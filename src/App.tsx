@@ -101,9 +101,9 @@ function App() {
       if (!draggingCube) {
         if (scenario === "drift") {
           setCube((current) => ({
-            x: current.x + values.Rx * 0.01,
-            y: current.y + values.Ry * 0.01,
-            z: current.z + values.Rz * 0.01,
+            x: current.x + values.Rx * 0.05,
+            y: current.y + values.Ry * 0.05,
+            z: current.z + values.Rz * 0.05,
           }));
         } else {
           setCube({
