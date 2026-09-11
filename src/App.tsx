@@ -139,7 +139,26 @@ function App() {
     [],
   );
   const update = (key: string, value: unknown) =>
-    setProfile({ ...profile, [key]: value });
+    setProfile((current) => ({ ...current, [key]: value }));
+  const applyAxisToAll = (axis: Axis) => {
+    const all = <T,>(value: T) => ({
+      Tx: value,
+      Ty: value,
+      Tz: value,
+      Rx: value,
+      Ry: value,
+      Rz: value,
+    });
+    setProfile((current) => ({
+      ...current,
+      gains: all(current.gains[axis]),
+      deadzones: all(current.deadzones[axis]),
+      smoothingTauSeconds: all(current.smoothingTauSeconds[axis]),
+      responseExponent: all(current.responseExponent[axis]),
+      signs: all(current.signs[axis]),
+      enabled: all(current.enabled[axis]),
+    }));
+  };
   const selectPlane = (plane: string) => {
     setViewPlane(plane);
     const rotations: Record<string, { x: number; y: number; z: number }> = {
@@ -396,6 +415,7 @@ function App() {
               axis={selectedAxis}
               setAxis={setSelectedAxis}
               update={update}
+              applyAxisToAll={applyAxisToAll}
               points={curvePoints}
             />
           )}
@@ -441,12 +461,14 @@ function CurveView({
   axis,
   setAxis,
   update,
+  applyAxisToAll,
   points,
 }: {
   profile: typeof defaultProfile;
   axis: Axis;
   setAxis: (a: Axis) => void;
   update: (k: string, v: unknown) => void;
+  applyAxisToAll: (a: Axis) => void;
   points: number[];
 }) {
   const exponent = profile.responseExponent[axis];
@@ -500,6 +522,17 @@ function CurveView({
               ))}
             </select>
           </label>
+          <button
+            className="button secondary apply-all-axis"
+            type="button"
+            onClick={() => applyAxisToAll(axis)}
+          >
+            Apply this axis to all axes
+          </button>
+          <small className="control-help apply-all-help">
+            Copies gain, dead zone, smoothing, curve, direction, and enabled
+            state from {axis} to every axis.
+          </small>
           <label>
             Exponent <output>{exponent.toFixed(1)}</output>
             <small className="control-help">1.0 is linear. Higher values give finer centre control and require more travel for fast motion.</small>
