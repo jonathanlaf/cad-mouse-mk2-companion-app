@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
-import { decodeDeviceInfo, encodeSetAxis, type AxisRuntimeValues } from "./protocol";
+import { decodeDeviceInfo, encodeReset, encodeSetAxis, type AxisRuntimeValues } from "./protocol";
 import "./App.css";
 import "./layout.css";
 import "./fullscreen.css";
@@ -188,6 +188,25 @@ function App() {
       alert("The device rejected the runtime setting update.");
     }
   };
+  const syncProfile = async () => {
+    if (!devicePath) return;
+    await Promise.all(axes.map((axis) => syncAxis(axis, {
+      gain: profile.gains[axis],
+      deadzone: profile.deadzones[axis],
+      smoothingTauSeconds: profile.smoothingTauSeconds[axis],
+      responseExponent: profile.responseExponent[axis],
+      sign: profile.signs[axis] as 1 | -1,
+      enabled: profile.enabled[axis],
+    })));
+  };
+  const resetDeviceTuning = async () => {
+    if (!devicePath) return;
+    try {
+      await invoke("set_hid_feature", { path: devicePath, payload: Array.from(encodeReset()) });
+    } catch {
+      alert("The device rejected the runtime reset.");
+    }
+  };
   const selectPlane = (plane: string) => {
     setViewPlane(plane);
     const rotations: Record<string, { x: number; y: number; z: number }> = {
@@ -290,6 +309,14 @@ function App() {
           <button className="button" onClick={exportProfile}>
             Export profile
           </button>
+          {connected && <>
+            <button className="button secondary" onClick={syncProfile}>
+              Send profile to device
+            </button>
+            <button className="button secondary" onClick={resetDeviceTuning}>
+              Reset runtime tuning
+            </button>
+          </>}
         </div>
       </section>
       <div className="workspace">
