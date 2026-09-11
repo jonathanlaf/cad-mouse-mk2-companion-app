@@ -322,7 +322,7 @@ function App() {
                     </div>
                   </div>
                   <div className="readouts">
-                    {(["Rx", "Ry", "Rz"] as Axis[]).map((a) => (
+                    {axes.map((a) => (
                       <div key={a}>
                         <span>{a}</span>
                         <strong>{(latest?.[a] ?? 0).toFixed(1)}</strong>
