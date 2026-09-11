@@ -114,7 +114,7 @@ function App() {
   const selectPlane = (plane: string) => {
     setViewPlane(plane);
     const rotations: Record<string, { x: number; y: number; z: number }> = {
-      perspective: { x: 0, y: 0, z: 0 }, front: { x: 0, y: 0, z: 0 }, back: { x: 0, y: 180, z: 0 }, left: { x: 0, y: 90, z: 0 }, right: { x: 0, y: -90, z: 0 }, top: { x: 90, y: 0, z: 0 }, bottom: { x: -90, y: 0, z: 0 },
+      perspective: { x: 0, y: 0, z: 0 }, front: { x: 0, y: 0, z: 0 }, back: { x: 0, y: 180, z: 0 }, left: { x: 0, y: 90, z: 0 }, right: { x: 0, y: -90, z: 0 }, top: { x: -90, y: 0, z: 0 }, bottom: { x: 90, y: 0, z: 0 },
     };
     if (rotations[plane]) setCube(rotations[plane]);
   };
