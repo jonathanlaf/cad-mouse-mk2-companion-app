@@ -99,11 +99,19 @@ function App() {
       ) as Record<Axis, number>;
       setSamples((o) => [...o.slice(-119), { time: t, values }]);
       if (!draggingCube) {
-        setCube({
-          x: values.Rx * 0.18,
-          y: values.Ry * 0.18,
-          z: values.Rz * 0.18,
-        });
+        if (scenario === "drift") {
+          setCube((current) => ({
+            x: current.x + values.Rx * 0.01,
+            y: current.y + values.Ry * 0.01,
+            z: current.z + values.Rz * 0.01,
+          }));
+        } else {
+          setCube({
+            x: values.Rx * 0.18,
+            y: values.Ry * 0.18,
+            z: values.Rz * 0.18,
+          });
+        }
       }
     }, 100);
     return () => clearInterval(id);
