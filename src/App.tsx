@@ -61,7 +61,10 @@ function scenarioValue(s: string, a: Axis, t: number) {
     );
   if (s === "jitter")
     return Math.sin(t * 18 + p) * 10 + Math.sin(t * 2 + p) * 5;
-  if (s === "drift") return Math.sin(t * 0.3 + p) * 12;
+  if (s === "drift") {
+    const index = axes.indexOf(a);
+    return (index % 2 === 0 ? 1 : -1) * (4 + index * 2);
+  }
   return 0;
 }
 
