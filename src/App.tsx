@@ -76,8 +76,7 @@ function App() {
   );
   const [selectedAxis, setSelectedAxis] = useState<Axis>("Tx");
   const [cube, setCube] = useState({ x: 0, y: 0, z: 0 });
-  const [cubeZoom, setCubeZoom] = useState(1);
-  const [cubeOffset, setCubeOffset] = useState({ x: 0, y: 0 });
+  const [cubeView, setCubeView] = useState({ zoom: 1, offset: { x: 0, y: 0 } });
   const [draggingCube, setDraggingCube] = useState(false);
   const dragStart = useRef({ pointerX: 0, pointerY: 0, cubeX: 0, cubeY: 0 });
   useEffect(() => {
@@ -251,14 +250,13 @@ function App() {
                         x: e.clientX - (rect.left + rect.width / 2),
                         y: e.clientY - (rect.top + rect.height / 2),
                       };
-                      setCubeZoom((current) => {
-                        const next = Math.min(2.5, Math.max(0.5, current - e.deltaY * 0.001));
-                        const ratio = next / current;
-                        setCubeOffset((offset) => ({
-                          x: pointer.x - (pointer.x - offset.x) * ratio,
-                          y: pointer.y - (pointer.y - offset.y) * ratio,
-                        }));
-                        return next;
+                      setCubeView((current) => {
+                        const next = Math.min(2.5, Math.max(0.5, current.zoom - e.deltaY * 0.001));
+                        const ratio = next / current.zoom;
+                        return { zoom: next, offset: {
+                          x: pointer.x - (pointer.x - current.offset.x) * ratio,
+                          y: pointer.y - (pointer.y - current.offset.y) * ratio,
+                        }};
                       });
                     }}
                     onPointerMove={(e) => {
@@ -278,7 +276,7 @@ function App() {
                     <div
                       className="cube"
                       style={{
-                        transform: `translate(${cubeOffset.x}px, ${cubeOffset.y}px) scale(${cubeZoom}) rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
+                        transform: `translate(${cubeView.offset.x}px, ${cubeView.offset.y}px) scale(${cubeView.zoom}) rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
                       }}
                     >
                       {["front", "back", "right", "left", "top", "bottom"].map(
