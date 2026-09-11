@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "CAD Mouse MK2 Companion",
-        "width": 800,
-        "height": 600,
+        "width": 1280,
+        "height": 900,
         "resizable": true,
         "fullscreen": false
       }
