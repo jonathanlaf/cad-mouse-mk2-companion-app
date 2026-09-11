@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import "./layout.css";
+import "./fullscreen.css";
 
 type Axis = "Tx" | "Ty" | "Tz" | "Rx" | "Ry" | "Rz";
 type Sample = { time: number; values: Record<Axis, number> };
@@ -77,6 +78,8 @@ function App() {
   const [selectedAxis, setSelectedAxis] = useState<Axis>("Tx");
   const [cube, setCube] = useState({ x: 0, y: 0, z: 0 });
   const [cubeView, setCubeView] = useState({ zoom: 1, offset: { x: 0, y: 0 } });
+  const [cubeFullscreen, setCubeFullscreen] = useState(false);
+  const [viewPlane, setViewPlane] = useState("perspective");
   const [draggingCube, setDraggingCube] = useState(false);
   const [panningCube, setPanningCube] = useState(false);
   const dragStart = useRef({ pointerX: 0, pointerY: 0, cubeX: 0, cubeY: 0 });
@@ -106,6 +109,13 @@ function App() {
   );
   const update = (key: string, value: unknown) =>
     setProfile({ ...profile, [key]: value });
+  const selectPlane = (plane: string) => {
+    setViewPlane(plane);
+    const rotations: Record<string, { x: number; y: number; z: number }> = {
+      perspective: { x: 0, y: 0, z: 0 }, front: { x: 0, y: 0, z: 0 }, back: { x: 0, y: 180, z: 0 }, left: { x: 0, y: -90, z: 0 }, right: { x: 0, y: 90, z: 0 }, top: { x: 90, y: 0, z: 0 }, bottom: { x: -90, y: 0, z: 0 },
+    };
+    if (rotations[plane]) setCube(rotations[plane]);
+  };
   const exportProfile = () => {
     const u = URL.createObjectURL(
       new Blob([JSON.stringify(profile, null, 2)], {
@@ -219,16 +229,18 @@ function App() {
                 </span>
               </section>
               <div className="hero-grid">
-                <section className="panel cube-panel">
+                <section className={`panel cube-panel ${cubeFullscreen ? "cube-fullscreen" : ""}`}>
                   <div className="panel-title">
                     <div>
                       <span className="eyebrow">ORIENTATION</span>
                       <h2>Physical response</h2>
                     </div>
                     <div className="viewport-tools">
+                      <select className="plane-select" value={viewPlane} onChange={(e) => selectPlane(e.target.value)} aria-label="Cube view plane"><option value="perspective">Perspective</option><option value="front">Front</option><option value="back">Back</option><option value="left">Left</option><option value="right">Right</option><option value="top">Top</option><option value="bottom">Bottom</option></select>
                       <button className="button secondary" onClick={() => setViewMode(viewMode === "perspective" ? "isometric" : "perspective")}>
                         {viewMode === "perspective" ? "Isometric" : "Perspective"}
                       </button>
+                      <button className="button secondary" onClick={() => setCubeFullscreen(!cubeFullscreen)}>{cubeFullscreen ? "Exit fullscreen" : "Fullscreen"}</button>
                     </div>
                   </div>
                   <div
