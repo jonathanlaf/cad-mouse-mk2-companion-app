@@ -478,7 +478,7 @@ function App() {
               points={curvePoints}
             />
           )}
-          {tab === "settings" && <Settings profile={profile} update={update} />}
+          {tab === "settings" && <Settings profile={profile} update={update} syncAxis={syncAxis} />}
         </article>
       </div>
       <footer>
@@ -679,10 +679,20 @@ function CurveView({
 function Settings({
   profile,
   update,
+  syncAxis,
 }: {
   profile: typeof defaultProfile;
   update: (k: string, v: unknown) => void;
+  syncAxis: (a: Axis, values: AxisRuntimeValues) => void;
 }) {
+  const axisValues = (axis: Axis, changes: Partial<AxisRuntimeValues>): AxisRuntimeValues => ({
+    gain: changes.gain ?? profile.gains[axis],
+    deadzone: changes.deadzone ?? profile.deadzones[axis],
+    smoothingTauSeconds: changes.smoothingTauSeconds ?? profile.smoothingTauSeconds[axis],
+    responseExponent: changes.responseExponent ?? profile.responseExponent[axis],
+    sign: (changes.sign ?? profile.signs[axis]) as 1 | -1,
+    enabled: changes.enabled ?? profile.enabled[axis],
+  });
   const field = (
     key: keyof typeof defaultProfile,
     label: string,
@@ -799,12 +809,12 @@ function Settings({
         <div className="axis-settings-title"><span className="eyebrow">PER-AXIS TUNING</span><small>These values are independent for every translation and rotation axis.</small></div>
         {axes.map((axis) => <div className="axis-row" key={axis}>
           <div className="axis-name"><b style={{ color: colors[axes.indexOf(axis)] }}>{axis}</b><small>{axisInfo[axis]}</small></div>
-          <label>Gain<input type="number" min="0" max="100" step="0.1" value={profile.gains[axis]} onChange={(e) => update("gains", { ...profile.gains, [axis]: Number(e.target.value) })} /></label>
-          <label>Dead zone<input type="number" min="0" max="350" step="0.1" value={profile.deadzones[axis]} onChange={(e) => update("deadzones", { ...profile.deadzones, [axis]: Number(e.target.value) })} /></label>
-          <label>Smoothing (s)<input type="number" min="0" max="1" step="0.01" value={profile.smoothingTauSeconds[axis]} onChange={(e) => update("smoothingTauSeconds", { ...profile.smoothingTauSeconds, [axis]: Number(e.target.value) })} /></label>
-          <label>Curve<input type="number" min="1" max="8" step="0.1" value={profile.responseExponent[axis]} onChange={(e) => update("responseExponent", { ...profile.responseExponent, [axis]: Number(e.target.value) })} /></label>
-          <label>Direction<select value={profile.signs[axis]} onChange={(e) => update("signs", { ...profile.signs, [axis]: Number(e.target.value) })}><option value="1">Normal (+)</option><option value="-1">Reversed (−)</option></select></label>
-          <label className="axis-enabled">Enabled<input type="checkbox" checked={profile.enabled[axis]} onChange={(e) => update("enabled", { ...profile.enabled, [axis]: e.target.checked })} /></label>
+          <label>Gain<input type="number" min="0" max="100" step="0.1" value={profile.gains[axis]} onChange={(e) => { const value = Number(e.target.value); update("gains", { ...profile.gains, [axis]: value }); syncAxis(axis, axisValues(axis, { gain: value })); }} /></label>
+          <label>Dead zone<input type="number" min="0" max="350" step="0.1" value={profile.deadzones[axis]} onChange={(e) => { const value = Number(e.target.value); update("deadzones", { ...profile.deadzones, [axis]: value }); syncAxis(axis, axisValues(axis, { deadzone: value })); }} /></label>
+          <label>Smoothing (s)<input type="number" min="0" max="1" step="0.01" value={profile.smoothingTauSeconds[axis]} onChange={(e) => { const value = Number(e.target.value); update("smoothingTauSeconds", { ...profile.smoothingTauSeconds, [axis]: value }); syncAxis(axis, axisValues(axis, { smoothingTauSeconds: value })); }} /></label>
+          <label>Curve<input type="number" min="1" max="8" step="0.1" value={profile.responseExponent[axis]} onChange={(e) => { const value = Number(e.target.value); update("responseExponent", { ...profile.responseExponent, [axis]: value }); syncAxis(axis, axisValues(axis, { responseExponent: value })); }} /></label>
+          <label>Direction<select value={profile.signs[axis]} onChange={(e) => { const value = Number(e.target.value) as 1 | -1; update("signs", { ...profile.signs, [axis]: value }); syncAxis(axis, axisValues(axis, { sign: value })); }}><option value="1">Normal (+)</option><option value="-1">Reversed (−)</option></select></label>
+          <label className="axis-enabled">Enabled<input type="checkbox" checked={profile.enabled[axis]} onChange={(e) => { const value = e.target.checked; update("enabled", { ...profile.enabled, [axis]: value }); syncAxis(axis, axisValues(axis, { enabled: value })); }} /></label>
         </div>)}
       </div>
       <div className="axis-summary">
