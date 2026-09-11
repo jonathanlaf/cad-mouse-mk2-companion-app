@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import "./layout.css";
 
@@ -77,6 +77,7 @@ function App() {
   const [selectedAxis, setSelectedAxis] = useState<Axis>("Tx");
   const [cube, setCube] = useState({ x: 0, y: 0, z: 0 });
   const [draggingCube, setDraggingCube] = useState(false);
+  const dragStart = useRef({ pointerX: 0, pointerY: 0, cubeX: 0, cubeY: 0 });
   useEffect(() => {
     if (!simulationRunning) return;
     const start = performance.now();
@@ -232,13 +233,19 @@ function App() {
                     className={`cube-stage ${viewMode}`}
                     onPointerDown={(e) => {
                       e.currentTarget.setPointerCapture(e.pointerId);
+                      dragStart.current = {
+                        pointerX: e.clientX,
+                        pointerY: e.clientY,
+                        cubeX: cube.x,
+                        cubeY: cube.y,
+                      };
                       setDraggingCube(true);
                     }}
                     onPointerMove={(e) => {
                       if (draggingCube)
                         setCube((current) => ({
-                          x: current.x + e.movementY,
-                          y: current.y + e.movementX,
+                          x: dragStart.current.cubeX + (e.clientY - dragStart.current.pointerY) * 0.7,
+                          y: dragStart.current.cubeY + (e.clientX - dragStart.current.pointerX) * 0.7,
                           z: current.z,
                         }));
                     }}
