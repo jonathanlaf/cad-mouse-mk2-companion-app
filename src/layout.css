@@ -96,6 +96,7 @@ aside button.nav-selected {
 .curve-controls select {
   font-size: 11px;
 }
+.trace-clear{margin-top:18px}
 .axis-reference {
   position: absolute;
   width: 240px;

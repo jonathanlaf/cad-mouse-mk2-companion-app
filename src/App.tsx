@@ -207,12 +207,6 @@ function App() {
                 </label>
                 <button
                   className="button secondary"
-                  onClick={() => setSamples([])}
-                >
-                  Clear trace
-                </button>
-                <button
-                  className="button secondary"
                   onClick={() => setSimulationRunning(!simulationRunning)}
                 >
                   {simulationRunning ? "Stop simulation" : "Start simulation"}
@@ -301,6 +295,12 @@ function App() {
                       />
                     ))}
                   </div>
+                  <button
+                    className="button secondary trace-clear"
+                    onClick={() => setSamples([])}
+                  >
+                    Clear trace
+                  </button>
                 </section>
               </div>
             </>
