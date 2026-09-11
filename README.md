@@ -4,6 +4,10 @@ Cross-platform Tauri companion app for testing and tuning the CAD Mouse MK2.
 
 ## Current prototype
 
+**WIP — simulator-tested only.** No physical mouse hardware has been connected
+or validated yet. HID discovery, live device streaming, and on-device profile
+writes remain pending hardware testing.
+
 The app is useful without hardware. Select a deterministic simulator scenario
 to drive six live axis traces, drag the 3D cube independently, and inspect idle
 drift, smooth sweeps, step response, or noise. The Sensitivity curves view
