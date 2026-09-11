@@ -211,14 +211,6 @@ function App() {
                 >
                   {simulationRunning ? "Stop simulation" : "Start simulation"}
                 </button>
-                <button
-                  className="button secondary"
-                  onClick={() =>
-                    setViewMode(viewMode === "perspective" ? "isometric" : "perspective")
-                  }
-                >
-                  {viewMode === "perspective" ? "Isometric view" : "Perspective view"}
-                </button>
                 <span className="hint">
                   Synthetic input lets you test the UI before the mouse arrives.
                 </span>
@@ -230,10 +222,11 @@ function App() {
                       <span className="eyebrow">ORIENTATION</span>
                       <h2>Physical response</h2>
                     </div>
-                    <span className="live">
-                      <i />
-                      LIVE
-                    </span>
+                    <div className="viewport-tools">
+                      <button className="button secondary" onClick={() => setViewMode(viewMode === "perspective" ? "isometric" : "perspective")}>
+                        {viewMode === "perspective" ? "Isometric" : "Perspective"}
+                      </button>
+                    </div>
                   </div>
                   <div
                     className={`cube-stage ${viewMode}`}
@@ -283,7 +276,7 @@ function App() {
                       <span className="eyebrow">TELEMETRY</span>
                       <h2>Six-axis trace</h2>
                     </div>
-                    <span className="units">±350 HID units</span>
+                    <span className="units">{connected ? "USB HID" : "SIMULATED"} · ±350 units</span>
                   </div>
                   <div className="charts">
                     {axes.map((a, i) => (
