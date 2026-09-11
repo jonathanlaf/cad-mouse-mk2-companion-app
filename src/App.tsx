@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import "./layout.css";
 import "./fullscreen.css";
@@ -89,6 +90,8 @@ function scenarioValue(s: string, a: Axis, t: number) {
 
 function App() {
   const [connected, setConnected] = useState(false);
+  const [devicePath, setDevicePath] = useState<string | null>(null);
+  const [deviceLabel, setDeviceLabel] = useState("Simulator mode");
   const [scenario, setScenario] = useState("idle");
   const [simulationRunning, setSimulationRunning] = useState(true);
   const [viewMode, setViewMode] = useState<"perspective" | "isometric">(
@@ -200,6 +203,29 @@ function App() {
     };
     r.readAsText(f);
   };
+  const connectMouse = async () => {
+    if (connected) {
+      setConnected(false);
+      setDevicePath(null);
+      setDeviceLabel("Simulator mode");
+      return;
+    }
+    try {
+      const devices = await invoke<Array<{ path: string; product?: string }>>(
+        "list_hid_devices",
+      );
+      const device = devices[0];
+      if (!device) {
+        alert("No CAD Mouse MK2 HID device found. Simulator remains active.");
+        return;
+      }
+      setDevicePath(device.path);
+      setConnected(true);
+      setDeviceLabel(device.product || "CAD Mouse MK2");
+    } catch {
+      alert("Native HID access is unavailable. Simulator remains active.");
+    }
+  };
   return (
     <main>
       <header>
@@ -209,8 +235,8 @@ function App() {
         </div>
         <div className={`connection ${connected ? "online" : ""}`}>
           <i />
-          {connected ? "Mouse connected" : "Simulator mode"}
-          <button onClick={() => setConnected(!connected)}>
+          {connected ? "Mouse connected" : deviceLabel}
+          <button onClick={connectMouse}>
             {connected ? "Disconnect" : "Connect mouse"}
           </button>
         </div>
@@ -220,7 +246,7 @@ function App() {
           <strong>{connected ? "CAD Mouse MK2" : "Offline test device"}</strong>
           <span>
             {connected
-              ? "USB HID · firmware 0.4.0 · profile daily"
+              ? `USB HID · ${devicePath ? "native transport" : "connected"}`
               : "Simulator active · no hardware required"}
           </span>
         </div>
