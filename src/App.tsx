@@ -61,6 +61,7 @@ function scenarioValue(s: string, a: Axis, t: number) {
     );
   if (s === "jitter")
     return Math.sin(t * 18 + p) * 10 + Math.sin(t * 2 + p) * 5;
+  if (s === "drift") return Math.sin(t * 0.3 + p) * 12;
   return 0;
 }
 
@@ -214,7 +215,8 @@ function App() {
                     value={scenario}
                     onChange={(e) => setScenario(e.target.value)}
                   >
-                    <option value="idle">Idle / drift</option>
+                    <option value="idle">Idle</option>
+                    <option value="drift">Drift</option>
                     <option value="sweep">Smooth sweep</option>
                     <option value="steps">Step response</option>
                     <option value="jitter">Noise / jitter</option>
