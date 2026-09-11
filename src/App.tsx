@@ -240,14 +240,16 @@ function App() {
                   </div>
                   <div
                     className={`cube-stage ${viewMode}`}
+                    onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
                     onPointerMove={(e) => {
                       if (e.buttons)
-                        setCube({
-                          x: cube.x + e.movementY,
-                          y: cube.y + e.movementX,
-                          z: cube.z,
-                        });
+                        setCube((current) => ({
+                          x: current.x + e.movementY,
+                          y: current.y + e.movementX,
+                          z: current.z,
+                        }));
                     }}
+                    onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
                   >
                     <div className="axis-reference" aria-label="X Y Z orientation reference">
                       <div className="plane-grid" />
