@@ -462,9 +462,11 @@ function CurveView({
         </span>
       </div>
       <p className="description">
-        The curve maps physical input to HID output. An exponent of 1.0 is
-        linear; larger values keep the centre precise and reach full output at
-        the edge.
+        The transfer curve maps conditioned input to HID output. The dashed
+        line is linear; the colored line applies this axis&apos;s response
+        exponent. Gain and dead zone condition the signal before this shape;
+        smoothing is temporal and is tuned below as a separate
+        latency/stability control.
       </p>
       <div className="curve-layout">
         <svg viewBox="0 0 420 260" aria-label="Sensitivity curve">
@@ -484,6 +486,7 @@ function CurveView({
           <path className="linear-line" d="M40 220L400 20" />
         </svg>
         <div className="curve-controls">
+          <h3>Transfer curve</h3>
           <label>
             Axis
             <select
@@ -564,6 +567,7 @@ function CurveView({
               }
             />
           </label>
+          <h3>Time response</h3>
           <p className="field-help">
             {axisInfo[axis]}. Gain controls sensitivity, dead zone removes
             resting drift, smoothing trades latency for stability, and sign
