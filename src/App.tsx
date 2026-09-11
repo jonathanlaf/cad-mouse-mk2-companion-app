@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import "./layout.css";
-import "./reference.css";
 
 type Axis = "Tx" | "Ty" | "Tz" | "Rx" | "Ry" | "Rz";
 type Sample = { time: number; values: Record<Axis, number> };
@@ -262,10 +261,6 @@ function App() {
                     }}
                     onPointerCancel={() => setDraggingCube(false)}
                   >
-                    <div className="axis-reference" aria-label="X Y Z orientation reference">
-                      <div className="plane-grid" />
-                      <span className="axis-x">X</span><span className="axis-y">Y</span><span className="axis-z">Z</span>
-                    </div>
                     <div
                       className="cube"
                       style={{
