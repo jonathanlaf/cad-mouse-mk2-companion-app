@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
-import { encodeSetAxis, type AxisRuntimeValues } from "./protocol";
+import { decodeDeviceInfo, encodeSetAxis, type AxisRuntimeValues } from "./protocol";
 import "./App.css";
 import "./layout.css";
 import "./fullscreen.css";
@@ -93,6 +93,7 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [devicePath, setDevicePath] = useState<string | null>(null);
   const [deviceLabel, setDeviceLabel] = useState("Simulator mode");
+  const [deviceInfo, setDeviceInfo] = useState<{ firmware: string; profile: string } | null>(null);
   const [scenario, setScenario] = useState("idle");
   const [simulationRunning, setSimulationRunning] = useState(true);
   const [viewMode, setViewMode] = useState<"perspective" | "isometric">(
@@ -231,6 +232,7 @@ function App() {
       setConnected(false);
       setDevicePath(null);
       setDeviceLabel("Simulator mode");
+      setDeviceInfo(null);
       return;
     }
     try {
@@ -245,6 +247,13 @@ function App() {
       setDevicePath(device.path);
       setConnected(true);
       setDeviceLabel(device.product || "CAD Mouse MK2");
+      try {
+        const packet = await invoke<number[]>("get_hid_feature", { path: device.path });
+        const info = decodeDeviceInfo(Uint8Array.from(packet));
+        setDeviceInfo({ firmware: info.firmware, profile: info.profile });
+      } catch {
+        setDeviceInfo(null);
+      }
     } catch {
       alert("Native HID access is unavailable. Simulator remains active.");
     }
@@ -269,7 +278,7 @@ function App() {
           <strong>{connected ? "CAD Mouse MK2" : "Offline test device"}</strong>
           <span>
             {connected
-              ? `USB HID · ${devicePath ? "native transport" : "connected"}`
+              ? `USB HID · firmware ${deviceInfo?.firmware ?? "unknown"} · profile ${deviceInfo?.profile ?? "unknown"}`
               : "Simulator active · no hardware required"}
           </span>
         </div>
