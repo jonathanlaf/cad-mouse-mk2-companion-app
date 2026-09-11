@@ -61,6 +61,23 @@ function scenarioValue(s: string, a: Axis, t: number) {
     );
   if (s === "jitter")
     return Math.sin(t * 18 + p) * 10 + Math.sin(t * 2 + p) * 5;
+  if (s === "sensor-drift") {
+    // Raw sensor offsets: all sensors shift in X (translation), while the
+    // top pair diverges in Z (rotation). The resulting axes mirror the
+    // firmware's sensor geometry instead of injecting HID values directly.
+    const sensor1 = { x: 8, y: 0, z: 0 };
+    const sensor2 = { x: 8, y: 0, z: 2 };
+    const sensor3 = { x: 8, y: 0, z: -2 };
+    const derived: Record<Axis, number> = {
+      Tx: (sensor1.x + sensor2.x + sensor3.x) / 3,
+      Ty: 0,
+      Tz: 0,
+      Rx: (Math.sqrt(3) * (sensor2.z + sensor3.z - 2 * sensor1.z)) / 3,
+      Ry: sensor3.z - sensor2.z,
+      Rz: 0,
+    };
+    return derived[a];
+  }
   if (s === "drift") {
     const index = axes.indexOf(a);
     return (index % 2 === 0 ? 1 : -1) * (4 + index * 2);
@@ -99,7 +116,7 @@ function App() {
       ) as Record<Axis, number>;
       setSamples((o) => [...o.slice(-119), { time: t, values }]);
       if (!draggingCube) {
-        if (scenario === "drift") {
+        if (scenario === "sensor-drift") {
           setCube((current) => ({
             x: current.x + values.Rx * 0.05,
             y: current.y + values.Ry * 0.05,
@@ -230,7 +247,8 @@ function App() {
                     }}
                   >
                     <option value="idle">Idle</option>
-                    <option value="drift">Drift</option>
+                    <option value="drift">Output bias</option>
+                    <option value="sensor-drift">Sensor drift</option>
                     <option value="sweep">Smooth sweep</option>
                     <option value="steps">Step response</option>
                     <option value="jitter">Noise / jitter</option>
