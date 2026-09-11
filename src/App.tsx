@@ -1,26 +1,615 @@
-import { useEffect, useMemo, useState } from 'react'
-import './App.css'
-import './layout.css'
+import { useEffect, useMemo, useState } from "react";
+import "./App.css";
+import "./layout.css";
 
-type Axis = 'Tx' | 'Ty' | 'Tz' | 'Rx' | 'Ry' | 'Rz'
-type Sample = { time: number; values: Record<Axis, number> }
-const axes: Axis[] = ['Tx', 'Ty', 'Tz', 'Rx', 'Ry', 'Rz']
-const colors = ['#65d9ff', '#a88bff', '#ffcf70', '#ff7f9d', '#73e0a2', '#ff9f62']
-const axisInfo: Record<Axis, string> = { Tx: 'Translation left ↔ right', Ty: 'Translation forward ↔ back', Tz: 'Translation up ↔ down', Rx: 'Rotation around the X axis (pitch)', Ry: 'Rotation around the Y axis (roll)', Rz: 'Rotation around the Z axis (twist)' }
-const defaultProfile = { name: 'companion-tuning', version: 1, gains: { Tx: 28, Ty: 28, Tz: 24, Rx: 18, Ry: 18, Rz: 20 }, deadzones: { Tx: 16, Ty: 16, Tz: 16, Rx: 20, Ry: 20, Rz: 20 }, smoothingTauSeconds: { Tx: .08, Ty: .08, Tz: .08, Rx: .08, Ry: .08, Rz: .08 }, responseExponent: { Tx: 1.6, Ty: 1.6, Tz: 1.6, Rx: 1.6, Ry: 1.6, Rz: 1.6 }, signs: { Tx: -1, Ty: 1, Tz: -1, Rx: 1, Ry: 1, Rz: 1 }, enabled: { Tx: true, Ty: true, Tz: true, Rx: true, Ry: true, Rz: true }, calibrationSamples: 200, calibrationSampleIntervalMs: 10, calibrationHoldMs: 3000, calibrationMaxDrift: 1, axisLimit: 350, ledBrightness: 40, idleSleepTimeoutMs: 120000, telemetryEveryLoops: 5, i2cTimeoutMs: 25, sensorReadRetries: 1, watchdogTimeoutMs: 4000 }
+type Axis = "Tx" | "Ty" | "Tz" | "Rx" | "Ry" | "Rz";
+type Sample = { time: number; values: Record<Axis, number> };
+const axes: Axis[] = ["Tx", "Ty", "Tz", "Rx", "Ry", "Rz"];
+const colors = [
+  "#65d9ff",
+  "#a88bff",
+  "#ffcf70",
+  "#ff7f9d",
+  "#73e0a2",
+  "#ff9f62",
+];
+const axisInfo: Record<Axis, string> = {
+  Tx: "Translation left ↔ right",
+  Ty: "Translation forward ↔ back",
+  Tz: "Translation up ↔ down",
+  Rx: "Rotation around the X axis (pitch)",
+  Ry: "Rotation around the Y axis (roll)",
+  Rz: "Rotation around the Z axis (twist)",
+};
+const defaultProfile = {
+  name: "companion-tuning",
+  version: 1,
+  gains: { Tx: 28, Ty: 28, Tz: 24, Rx: 18, Ry: 18, Rz: 20 },
+  deadzones: { Tx: 16, Ty: 16, Tz: 16, Rx: 20, Ry: 20, Rz: 20 },
+  smoothingTauSeconds: {
+    Tx: 0.08,
+    Ty: 0.08,
+    Tz: 0.08,
+    Rx: 0.08,
+    Ry: 0.08,
+    Rz: 0.08,
+  },
+  responseExponent: { Tx: 1.6, Ty: 1.6, Tz: 1.6, Rx: 1.6, Ry: 1.6, Rz: 1.6 },
+  signs: { Tx: -1, Ty: 1, Tz: -1, Rx: 1, Ry: 1, Rz: 1 },
+  enabled: { Tx: true, Ty: true, Tz: true, Rx: true, Ry: true, Rz: true },
+  calibrationSamples: 200,
+  calibrationSampleIntervalMs: 10,
+  calibrationHoldMs: 3000,
+  calibrationMaxDrift: 1,
+  axisLimit: 350,
+  ledBrightness: 40,
+  idleSleepTimeoutMs: 120000,
+  telemetryEveryLoops: 5,
+  i2cTimeoutMs: 25,
+  sensorReadRetries: 1,
+  watchdogTimeoutMs: 4000,
+};
 
-function scenarioValue(s: string, a: Axis, t: number) { const p = axes.indexOf(a) * .7; if (s === 'sweep') return Math.sin(t * 1.8 + p) * 260; if (s === 'steps') return (Math.floor((t + p) % 4) < 2 ? 1 : -1) * (a.startsWith('R') ? 150 : 240); if (s === 'jitter') return Math.sin(t * 18 + p) * 10 + Math.sin(t * 2 + p) * 5; return Math.sin(t * .3 + p) * 2 }
-
-function App() {
-  const [connected, setConnected] = useState(false); const [scenario, setScenario] = useState('idle'); const [samples, setSamples] = useState<Sample[]>([]); const [profile, setProfile] = useState(defaultProfile); const [tab, setTab] = useState<'physical' | 'curves' | 'settings'>('physical'); const [selectedAxis, setSelectedAxis] = useState<Axis>('Tx'); const [cube, setCube] = useState({ x: 0, y: 0, z: 0 })
-  useEffect(() => { const start = performance.now(); const id = setInterval(() => { const t = (performance.now() - start) / 1000; const values = Object.fromEntries(axes.map(a => [a, scenarioValue(scenario, a, t)])) as Record<Axis, number>; setSamples(o => [...o.slice(-119), { time: t, values }]); setCube({ x: values.Rx * .18, y: values.Ry * .18, z: values.Rz * .18 }) }, 100); return () => clearInterval(id) }, [scenario])
-  const latest = samples.at(-1)?.values; const curvePoints = useMemo(() => Array.from({ length: 41 }, (_, i) => i / 40), []); const update = (key: string, value: unknown) => setProfile({ ...profile, [key]: value })
-  const exportProfile = () => { const u = URL.createObjectURL(new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = u; a.download = `${profile.name}.json`; a.click(); URL.revokeObjectURL(u) }
-  const importProfile = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { setProfile(JSON.parse(String(r.result))) } catch { alert('Invalid profile JSON') } }; r.readAsText(f) }
-  return <main><header><div><span className="eyebrow">CAD MOUSE MK2 / COMPANION</span><h1>Hardware lab</h1></div><div className={`connection ${connected ? 'online' : ''}`}><i />{connected ? 'Mouse connected' : 'Simulator mode'}<button onClick={() => setConnected(!connected)}>{connected ? 'Disconnect' : 'Connect mouse'}</button></div></header><section className="device-bar"><div><strong>{connected ? 'CAD Mouse MK2' : 'Offline test device'}</strong><span>{connected ? 'USB HID · firmware 0.4.0 · profile daily' : 'Simulator active · no hardware required'}</span></div><div className="actions"><label className="button secondary">Import JSON<input type="file" accept=".json" onChange={importProfile} /></label><button className="button" onClick={exportProfile}>Export profile</button></div></section><div className="workspace"><aside><span className="eyebrow">WORKBENCH</span><button className={tab === 'physical' ? 'nav-selected' : ''} onClick={() => setTab('physical')}>◈ <span>Physical test</span></button><button className={tab === 'curves' ? 'nav-selected' : ''} onClick={() => setTab('curves')}>⌁ <span>Curve tuning</span></button><button className={tab === 'settings' ? 'nav-selected' : ''} onClick={() => setTab('settings')}>⚙ <span>Profile settings</span></button><div className="side-note"><span className="eyebrow">PROFILE</span><strong>{profile.name}</strong><small>Unsaved local changes</small></div></aside><article>{tab === 'physical' && <><section className="toolbar"><label>Scenario <select value={scenario} onChange={e => setScenario(e.target.value)}><option value="idle">Idle / drift</option><option value="sweep">Smooth sweep</option><option value="steps">Step response</option><option value="jitter">Noise / jitter</option></select></label><button className="button secondary" onClick={() => setSamples([])}>Clear trace</button><span className="hint">Synthetic input lets you test the UI before the mouse arrives.</span></section><div className="hero-grid"><section className="panel cube-panel"><div className="panel-title"><div><span className="eyebrow">ORIENTATION</span><h2>Physical response</h2></div><span className="live"><i />LIVE</span></div><div className="cube-stage" onPointerMove={e => { if (e.buttons) setCube({ x: cube.x + e.movementY, y: cube.y + e.movementX, z: cube.z }) }}><div className="cube" style={{ transform: `rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)` }}>{['front', 'back', 'right', 'left', 'top', 'bottom'].map(x => <b className={x} key={x} />)}</div></div><div className="readouts">{(['Rx', 'Ry', 'Rz'] as Axis[]).map(a => <div key={a}><span>{a}</span><strong>{(latest?.[a] ?? 0).toFixed(1)}</strong></div>)}</div></section><section className="panel"><div className="panel-title"><div><span className="eyebrow">TELEMETRY</span><h2>Six-axis trace</h2></div><span className="units">±350 HID units</span></div><div className="charts">{axes.map((a, i) => <MiniChart key={a} axis={a} samples={samples} color={colors[i]} />)}</div></section></div></>}{tab === 'curves' && <CurveView profile={profile} axis={selectedAxis} setAxis={setSelectedAxis} update={update} points={curvePoints} />}{tab === 'settings' && <Settings profile={profile} update={update} />}</article></div><footer><span>Simulator scenarios are deterministic and require no hardware.</span><span>Runtime HID support will be connected through the Rust backend.</span></footer></main>
+function scenarioValue(s: string, a: Axis, t: number) {
+  const p = axes.indexOf(a) * 0.7;
+  if (s === "sweep") return Math.sin(t * 1.8 + p) * 260;
+  if (s === "steps")
+    return (
+      (Math.floor((t + p) % 4) < 2 ? 1 : -1) * (a.startsWith("R") ? 150 : 240)
+    );
+  if (s === "jitter")
+    return Math.sin(t * 18 + p) * 10 + Math.sin(t * 2 + p) * 5;
+  return Math.sin(t * 0.3 + p) * 2;
 }
 
-function MiniChart({ axis, samples, color }: { axis: Axis; samples: Sample[]; color: string }) { const points = samples.map((s, i) => `${i / 119 * 100},${50 - s.values[axis] / 350 * 46}`).join(' '); return <div className="chart"><span style={{ color }}>{axis}</span><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path className="zero" d="M0 50H100" /><polyline points={points} style={{ stroke: color }} /></svg></div> }
-function CurveView({ profile, axis, setAxis, update, points }: { profile: typeof defaultProfile; axis: Axis; setAxis: (a: Axis) => void; update: (k: string, v: unknown) => void; points: number[] }) { const exponent = profile.responseExponent[axis]; return <section className="panel curves"><div className="panel-title"><div><span className="eyebrow">TRANSFER FUNCTION</span><h2>Shape your sensitivity</h2></div><span className="units">{axis} · {axisInfo[axis]}</span></div><p className="description">The curve maps physical input to HID output. An exponent of 1.0 is linear; larger values keep the centre precise and reach full output at the edge.</p><div className="curve-layout"><svg viewBox="0 0 420 260" aria-label="Sensitivity curve"><path className="gridline" d="M40 220H400M40 140H400M40 60H400M40 220V20M130 220V20M220 220V20M310 220V20M400 220V20" /><path className="curve-line" d={points.map((x, i) => `${i ? 'L' : 'M'}${40 + x * 360},${220 - Math.pow(x, exponent) * 200}`).join(' ')} /><path className="linear-line" d="M40 220L400 20" /></svg><div className="curve-controls"><label>Axis<select value={axis} onChange={e => setAxis(e.target.value as Axis)}>{axes.map(a => <option key={a}>{a} — {axisInfo[a]}</option>)}</select></label><label>Exponent <output>{exponent.toFixed(1)}</output><input type="range" min="1" max="3" step=".1" value={exponent} onChange={e => update('responseExponent', { ...profile.responseExponent, [axis]: Number(e.target.value) })} /></label><label>Gain <output>{profile.gains[axis]}</output><input type="range" min="1" max="60" value={profile.gains[axis]} onChange={e => update('gains', { ...profile.gains, [axis]: Number(e.target.value) })} /></label><label>Dead zone <output>{profile.deadzones[axis]}</output><input type="range" min="0" max="50" value={profile.deadzones[axis]} onChange={e => update('deadzones', { ...profile.deadzones, [axis]: Number(e.target.value) })} /></label><label>Smoothing <output>{profile.smoothingTauSeconds[axis].toFixed(2)}s</output><input type="range" min="0" max=".5" step=".01" value={profile.smoothingTauSeconds[axis]} onChange={e => update('smoothingTauSeconds', { ...profile.smoothingTauSeconds, [axis]: Number(e.target.value) })} /></label><p className="field-help">{axisInfo[axis]}. Gain controls sensitivity, dead zone removes resting drift, smoothing trades latency for stability, and sign reverses direction.</p></div></div></section> }
-function Settings({ profile, update }: { profile: typeof defaultProfile; update: (k: string, v: unknown) => void }) { const field = (key: keyof typeof defaultProfile, label: string, help: string, min: number, max: number, step = 1) => <label className="setting"><span><strong>{label}</strong><small>{help}</small></span><input type="number" min={min} max={max} step={step} value={profile[key] as number} onChange={e => update(key, Number(e.target.value))} /></label>; return <section className="panel settings"><div className="panel-title"><div><span className="eyebrow">DEVICE PROFILE</span><h2>Every setting, explained</h2></div><span className="units">Exportable JSON</span></div><div className="settings-grid">{field('calibrationSamples', 'Calibration samples', 'Samples averaged for the neutral baseline.', 1, 1000)}{field('calibrationSampleIntervalMs', 'Calibration interval (ms)', 'Time between sensor samples.', 1, 1000)}{field('calibrationHoldMs', 'Recalibration hold (ms)', 'Both buttons held to request calibration.', 100, 30000)}{field('calibrationMaxDrift', 'Maximum calibration drift', 'Movement threshold that invalidates a sample window.', 0.01, 100, .01)}{field('axisLimit', 'HID axis limit', 'Maximum report magnitude; firmware supports up to 350.', 1, 350)}{field('ledBrightness', 'LED brightness', 'Ring brightness from 0 to 255.', 0, 255)}{field('idleSleepTimeoutMs', 'Idle sleep timeout (ms)', 'Inactivity before sensor low-power mode.', 1000, 3600000)}{field('telemetryEveryLoops', 'Telemetry cadence (loops)', 'How often diagnostic serial data is emitted.', 1, 100)}{field('i2cTimeoutMs', 'I²C timeout (ms)', 'Upper bound for each sensor bus transaction.', 1, 1000)}{field('sensorReadRetries', 'Sensor retries', 'Extra complete read attempts after a failure.', 1, 3)}{field('watchdogTimeoutMs', 'Watchdog timeout (ms)', 'Active-loop recovery timeout; disabled during sleep.', 1000, 8000)}</div><div className="axis-summary"><span className="eyebrow">AXIS LEGEND</span>{axes.map(a => <div key={a}><b style={{ color: colors[axes.indexOf(a)] }}>{a}</b><span>{axisInfo[a]}</span></div>)}</div></section> }
-export default App
+function App() {
+  const [connected, setConnected] = useState(false);
+  const [scenario, setScenario] = useState("idle");
+  const [simulationRunning, setSimulationRunning] = useState(true);
+  const [viewMode, setViewMode] = useState<"perspective" | "isometric">(
+    "perspective",
+  );
+  const [samples, setSamples] = useState<Sample[]>([]);
+  const [profile, setProfile] = useState(defaultProfile);
+  const [tab, setTab] = useState<"physical" | "curves" | "settings">(
+    "physical",
+  );
+  const [selectedAxis, setSelectedAxis] = useState<Axis>("Tx");
+  const [cube, setCube] = useState({ x: 0, y: 0, z: 0 });
+  useEffect(() => {
+    if (!simulationRunning) return;
+    const start = performance.now();
+    const id = setInterval(() => {
+      const t = (performance.now() - start) / 1000;
+      const values = Object.fromEntries(
+        axes.map((a) => [a, scenarioValue(scenario, a, t)]),
+      ) as Record<Axis, number>;
+      setSamples((o) => [...o.slice(-119), { time: t, values }]);
+      setCube({
+        x: values.Rx * 0.18,
+        y: values.Ry * 0.18,
+        z: values.Rz * 0.18,
+      });
+    }, 100);
+    return () => clearInterval(id);
+  }, [scenario, simulationRunning]);
+  const latest = samples.at(-1)?.values;
+  const curvePoints = useMemo(
+    () => Array.from({ length: 41 }, (_, i) => i / 40),
+    [],
+  );
+  const update = (key: string, value: unknown) =>
+    setProfile({ ...profile, [key]: value });
+  const exportProfile = () => {
+    const u = URL.createObjectURL(
+      new Blob([JSON.stringify(profile, null, 2)], {
+        type: "application/json",
+      }),
+    );
+    const a = document.createElement("a");
+    a.href = u;
+    a.download = `${profile.name}.json`;
+    a.click();
+    URL.revokeObjectURL(u);
+  };
+  const importProfile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        setProfile(JSON.parse(String(r.result)));
+      } catch {
+        alert("Invalid profile JSON");
+      }
+    };
+    r.readAsText(f);
+  };
+  return (
+    <main>
+      <header>
+        <div>
+          <span className="eyebrow">CAD MOUSE MK2 / COMPANION</span>
+          <h1>Hardware lab</h1>
+        </div>
+        <div className={`connection ${connected ? "online" : ""}`}>
+          <i />
+          {connected ? "Mouse connected" : "Simulator mode"}
+          <button onClick={() => setConnected(!connected)}>
+            {connected ? "Disconnect" : "Connect mouse"}
+          </button>
+        </div>
+      </header>
+      <section className="device-bar">
+        <div>
+          <strong>{connected ? "CAD Mouse MK2" : "Offline test device"}</strong>
+          <span>
+            {connected
+              ? "USB HID · firmware 0.4.0 · profile daily"
+              : "Simulator active · no hardware required"}
+          </span>
+        </div>
+        <div className="actions">
+          <label className="button secondary">
+            Import JSON
+            <input type="file" accept=".json" onChange={importProfile} />
+          </label>
+          <button className="button" onClick={exportProfile}>
+            Export profile
+          </button>
+        </div>
+      </section>
+      <div className="workspace">
+        <aside>
+          <span className="eyebrow">WORKBENCH</span>
+          <button
+            className={tab === "physical" ? "nav-selected" : ""}
+            onClick={() => setTab("physical")}
+          >
+            ◈ <span>Physical test</span>
+          </button>
+          <button
+            className={tab === "curves" ? "nav-selected" : ""}
+            onClick={() => setTab("curves")}
+          >
+            ⌁ <span>Curve tuning</span>
+          </button>
+          <button
+            className={tab === "settings" ? "nav-selected" : ""}
+            onClick={() => setTab("settings")}
+          >
+            ⚙ <span>Profile settings</span>
+          </button>
+          <div className="side-note">
+            <span className="eyebrow">PROFILE</span>
+            <strong>{profile.name}</strong>
+            <small>Unsaved local changes</small>
+          </div>
+        </aside>
+        <article>
+          {tab === "physical" && (
+            <>
+              <section className="toolbar">
+                <label>
+                  Scenario{" "}
+                  <select
+                    value={scenario}
+                    onChange={(e) => setScenario(e.target.value)}
+                  >
+                    <option value="idle">Idle / drift</option>
+                    <option value="sweep">Smooth sweep</option>
+                    <option value="steps">Step response</option>
+                    <option value="jitter">Noise / jitter</option>
+                  </select>
+                </label>
+                <button
+                  className="button secondary"
+                  onClick={() => setSamples([])}
+                >
+                  Clear trace
+                </button>
+                <button
+                  className="button secondary"
+                  onClick={() => setSimulationRunning(!simulationRunning)}
+                >
+                  {simulationRunning ? "Stop simulation" : "Start simulation"}
+                </button>
+                <button
+                  className="button secondary"
+                  onClick={() =>
+                    setViewMode(viewMode === "perspective" ? "isometric" : "perspective")
+                  }
+                >
+                  {viewMode === "perspective" ? "Isometric view" : "Perspective view"}
+                </button>
+                <span className="hint">
+                  Synthetic input lets you test the UI before the mouse arrives.
+                </span>
+              </section>
+              <div className="hero-grid">
+                <section className="panel cube-panel">
+                  <div className="panel-title">
+                    <div>
+                      <span className="eyebrow">ORIENTATION</span>
+                      <h2>Physical response</h2>
+                    </div>
+                    <span className="live">
+                      <i />
+                      LIVE
+                    </span>
+                  </div>
+                  <div
+                    className={`cube-stage ${viewMode}`}
+                    onPointerMove={(e) => {
+                      if (e.buttons)
+                        setCube({
+                          x: cube.x + e.movementY,
+                          y: cube.y + e.movementX,
+                          z: cube.z,
+                        });
+                    }}
+                  >
+                    <div className="axis-reference" aria-label="X Y Z orientation reference">
+                      <div className="plane-grid" />
+                      <span className="axis-x">X</span><span className="axis-y">Y</span><span className="axis-z">Z</span>
+                    </div>
+                    <div
+                      className="cube"
+                      style={{
+                        transform: `${viewMode === "isometric" ? "rotateX(-30deg) rotateY(45deg) " : ""}rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
+                      }}
+                    >
+                      {["front", "back", "right", "left", "top", "bottom"].map(
+                        (x) => (
+                          <b className={x} key={x} />
+                        ),
+                      )}
+                    </div>
+                  </div>
+                  <div className="readouts">
+                    {(["Rx", "Ry", "Rz"] as Axis[]).map((a) => (
+                      <div key={a}>
+                        <span>{a}</span>
+                        <strong>{(latest?.[a] ?? 0).toFixed(1)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                <section className="panel">
+                  <div className="panel-title">
+                    <div>
+                      <span className="eyebrow">TELEMETRY</span>
+                      <h2>Six-axis trace</h2>
+                    </div>
+                    <span className="units">±350 HID units</span>
+                  </div>
+                  <div className="charts">
+                    {axes.map((a, i) => (
+                      <MiniChart
+                        key={a}
+                        axis={a}
+                        samples={samples}
+                        color={colors[i]}
+                      />
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+          {tab === "curves" && (
+            <CurveView
+              profile={profile}
+              axis={selectedAxis}
+              setAxis={setSelectedAxis}
+              update={update}
+              points={curvePoints}
+            />
+          )}
+          {tab === "settings" && <Settings profile={profile} update={update} />}
+        </article>
+      </div>
+      <footer>
+        <span>
+          Simulator scenarios are deterministic and require no hardware.
+        </span>
+        <span>
+          Runtime HID support will be connected through the Rust backend.
+        </span>
+      </footer>
+    </main>
+  );
+}
+
+function MiniChart({
+  axis,
+  samples,
+  color,
+}: {
+  axis: Axis;
+  samples: Sample[];
+  color: string;
+}) {
+  const points = samples
+    .map((s, i) => `${(i / 119) * 100},${50 - (s.values[axis] / 350) * 46}`)
+    .join(" ");
+  return (
+    <div className="chart">
+      <span style={{ color }}>{axis}</span>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path className="zero" d="M0 50H100" />
+        <polyline points={points} style={{ stroke: color }} />
+      </svg>
+    </div>
+  );
+}
+function CurveView({
+  profile,
+  axis,
+  setAxis,
+  update,
+  points,
+}: {
+  profile: typeof defaultProfile;
+  axis: Axis;
+  setAxis: (a: Axis) => void;
+  update: (k: string, v: unknown) => void;
+  points: number[];
+}) {
+  const exponent = profile.responseExponent[axis];
+  return (
+    <section className="panel curves">
+      <div className="panel-title">
+        <div>
+          <span className="eyebrow">TRANSFER FUNCTION</span>
+          <h2>Shape your sensitivity</h2>
+        </div>
+        <span className="units">
+          {axis} · {axisInfo[axis]}
+        </span>
+      </div>
+      <p className="description">
+        The curve maps physical input to HID output. An exponent of 1.0 is
+        linear; larger values keep the centre precise and reach full output at
+        the edge.
+      </p>
+      <div className="curve-layout">
+        <svg viewBox="0 0 420 260" aria-label="Sensitivity curve">
+          <path
+            className="gridline"
+            d="M40 220H400M40 140H400M40 60H400M40 220V20M130 220V20M220 220V20M310 220V20M400 220V20"
+          />
+          <path
+            className="curve-line"
+            d={points
+              .map(
+                (x, i) =>
+                  `${i ? "L" : "M"}${40 + x * 360},${220 - Math.pow(x, exponent) * 200}`,
+              )
+              .join(" ")}
+          />
+          <path className="linear-line" d="M40 220L400 20" />
+        </svg>
+        <div className="curve-controls">
+          <label>
+            Axis
+            <select
+              value={axis}
+              onChange={(e) => setAxis(e.target.value as Axis)}
+            >
+              {axes.map((a) => (
+                <option key={a}>
+                  {a} — {axisInfo[a]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Exponent <output>{exponent.toFixed(1)}</output>
+            <small className="control-help">1.0 is linear. Higher values give finer centre control and require more travel for fast motion.</small>
+            <input
+              type="range"
+              min="1"
+              max="3"
+              step=".1"
+              value={exponent}
+              onChange={(e) =>
+                update("responseExponent", {
+                  ...profile.responseExponent,
+                  [axis]: Number(e.target.value),
+                })
+              }
+            />
+          </label>
+          <label>
+            Gain <output>{profile.gains[axis]}</output>
+            <small className="control-help">Multiplier applied before the HID limit. Raise it when the axis feels too slow.</small>
+            <input
+              type="range"
+              min="1"
+              max="60"
+              value={profile.gains[axis]}
+              onChange={(e) =>
+                update("gains", {
+                  ...profile.gains,
+                  [axis]: Number(e.target.value),
+                })
+              }
+            />
+          </label>
+          <label>
+            Dead zone <output>{profile.deadzones[axis]}</output>
+            <small className="control-help">Ignores small input around rest to remove sensor drift.</small>
+            <input
+              type="range"
+              min="0"
+              max="50"
+              value={profile.deadzones[axis]}
+              onChange={(e) =>
+                update("deadzones", {
+                  ...profile.deadzones,
+                  [axis]: Number(e.target.value),
+                })
+              }
+            />
+          </label>
+          <label>
+            Smoothing{" "}
+            <output>{profile.smoothingTauSeconds[axis].toFixed(2)}s</output>
+            <small className="control-help">Low-pass time constant. Higher values reduce jitter but add latency.</small>
+            <input
+              type="range"
+              min="0"
+              max=".5"
+              step=".01"
+              value={profile.smoothingTauSeconds[axis]}
+              onChange={(e) =>
+                update("smoothingTauSeconds", {
+                  ...profile.smoothingTauSeconds,
+                  [axis]: Number(e.target.value),
+                })
+              }
+            />
+          </label>
+          <p className="field-help">
+            {axisInfo[axis]}. Gain controls sensitivity, dead zone removes
+            resting drift, smoothing trades latency for stability, and sign
+            reverses direction.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+function Settings({
+  profile,
+  update,
+}: {
+  profile: typeof defaultProfile;
+  update: (k: string, v: unknown) => void;
+}) {
+  const field = (
+    key: keyof typeof defaultProfile,
+    label: string,
+    help: string,
+    min: number,
+    max: number,
+    step = 1,
+  ) => (
+    <label className="setting">
+      <span>
+        <strong>{label}</strong>
+        <small>{help}</small>
+      </span>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={profile[key] as number}
+        onChange={(e) => update(key, Number(e.target.value))}
+      />
+    </label>
+  );
+  return (
+    <section className="panel settings">
+      <div className="panel-title">
+        <div>
+          <span className="eyebrow">DEVICE PROFILE</span>
+          <h2>Every setting, explained</h2>
+        </div>
+        <span className="units">Exportable JSON</span>
+      </div>
+      <div className="settings-grid">
+        {field(
+          "calibrationSamples",
+          "Calibration samples",
+          "Samples averaged for the neutral baseline.",
+          1,
+          1000,
+        )}
+        {field(
+          "calibrationSampleIntervalMs",
+          "Calibration interval (ms)",
+          "Time between sensor samples.",
+          1,
+          1000,
+        )}
+        {field(
+          "calibrationHoldMs",
+          "Recalibration hold (ms)",
+          "Both buttons held to request calibration.",
+          100,
+          30000,
+        )}
+        {field(
+          "calibrationMaxDrift",
+          "Maximum calibration drift",
+          "Movement threshold that invalidates a sample window.",
+          0.01,
+          100,
+          0.01,
+        )}
+        {field(
+          "axisLimit",
+          "HID axis limit",
+          "Maximum report magnitude; firmware supports up to 350.",
+          1,
+          350,
+        )}
+        {field(
+          "ledBrightness",
+          "LED brightness",
+          "Ring brightness from 0 to 255.",
+          0,
+          255,
+        )}
+        {field(
+          "idleSleepTimeoutMs",
+          "Idle sleep timeout (ms)",
+          "Inactivity before sensor low-power mode.",
+          1000,
+          3600000,
+        )}
+        {field(
+          "telemetryEveryLoops",
+          "Telemetry cadence (loops)",
+          "How often diagnostic serial data is emitted.",
+          1,
+          100,
+        )}
+        {field(
+          "i2cTimeoutMs",
+          "I²C timeout (ms)",
+          "Upper bound for each sensor bus transaction.",
+          1,
+          1000,
+        )}
+        {field(
+          "sensorReadRetries",
+          "Sensor retries",
+          "Extra complete read attempts after a failure.",
+          1,
+          3,
+        )}
+        {field(
+          "watchdogTimeoutMs",
+          "Watchdog timeout (ms)",
+          "Active-loop recovery timeout; disabled during sleep.",
+          1000,
+          8000,
+        )}
+      </div>
+      <div className="axis-summary">
+        <span className="eyebrow">AXIS LEGEND</span>
+        {axes.map((a) => (
+          <div key={a}>
+            <b style={{ color: colors[axes.indexOf(a)] }}>{a}</b>
+            <span>{axisInfo[a]}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+export default App;
