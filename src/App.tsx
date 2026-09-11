@@ -244,7 +244,7 @@ function App() {
                     </div>
                   </div>
                   <div
-                    className={`cube-stage ${viewMode}`}
+                    className={`cube-stage ${viewMode} ${simulationRunning && viewPlane === "perspective" && !draggingCube ? "auto-orbit" : ""}`}
                     onPointerDown={(e) => {
                       if (e.button !== 0 && e.button !== 1) return;
                       e.currentTarget.setPointerCapture(e.pointerId);
@@ -309,7 +309,7 @@ function App() {
                     >
                       {["front", "back", "right", "left", "top", "bottom"].map(
                         (x) => (
-                          <b className={x} key={x} />
+                          <b className={x} key={x}><em>{x.toUpperCase()}</em></b>
                         ),
                       )}
                     </div>
