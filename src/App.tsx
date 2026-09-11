@@ -259,7 +259,7 @@ function App() {
                     <div
                       className="cube"
                       style={{
-                        transform: `${viewMode === "isometric" ? "rotateX(-30deg) rotateY(45deg) " : ""}rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
+                        transform: `rotateX(${cube.x}deg) rotateY(${cube.y}deg) rotateZ(${cube.z}deg)`,
                       }}
                     >
                       {["front", "back", "right", "left", "top", "bottom"].map(
