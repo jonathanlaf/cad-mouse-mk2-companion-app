@@ -245,7 +245,7 @@ function App() {
                     onPointerMove={(e) => {
                       if (draggingCube)
                         setCube((current) => ({
-                          x: dragStart.current.cubeX + (e.clientY - dragStart.current.pointerY) * 0.7,
+                          x: dragStart.current.cubeX - (e.clientY - dragStart.current.pointerY) * 0.7,
                           y: dragStart.current.cubeY + (e.clientX - dragStart.current.pointerX) * 0.7,
                           z: current.z,
                         }));
