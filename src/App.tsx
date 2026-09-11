@@ -693,6 +693,18 @@ function Settings({
           8000,
         )}
       </div>
+      <div className="axis-settings">
+        <div className="axis-settings-title"><span className="eyebrow">PER-AXIS TUNING</span><small>These values are independent for every translation and rotation axis.</small></div>
+        {axes.map((axis) => <div className="axis-row" key={axis}>
+          <div className="axis-name"><b style={{ color: colors[axes.indexOf(axis)] }}>{axis}</b><small>{axisInfo[axis]}</small></div>
+          <label>Gain<input type="number" min="0" max="100" step="0.1" value={profile.gains[axis]} onChange={(e) => update("gains", { ...profile.gains, [axis]: Number(e.target.value) })} /></label>
+          <label>Dead zone<input type="number" min="0" max="350" step="0.1" value={profile.deadzones[axis]} onChange={(e) => update("deadzones", { ...profile.deadzones, [axis]: Number(e.target.value) })} /></label>
+          <label>Smoothing (s)<input type="number" min="0" max="1" step="0.01" value={profile.smoothingTauSeconds[axis]} onChange={(e) => update("smoothingTauSeconds", { ...profile.smoothingTauSeconds, [axis]: Number(e.target.value) })} /></label>
+          <label>Curve<input type="number" min="1" max="8" step="0.1" value={profile.responseExponent[axis]} onChange={(e) => update("responseExponent", { ...profile.responseExponent, [axis]: Number(e.target.value) })} /></label>
+          <label>Direction<select value={profile.signs[axis]} onChange={(e) => update("signs", { ...profile.signs, [axis]: Number(e.target.value) })}><option value="1">Normal (+)</option><option value="-1">Reversed (−)</option></select></label>
+          <label className="axis-enabled">Enabled<input type="checkbox" checked={profile.enabled[axis]} onChange={(e) => update("enabled", { ...profile.enabled, [axis]: e.target.checked })} /></label>
+        </div>)}
+      </div>
       <div className="axis-summary">
         <span className="eyebrow">AXIS LEGEND</span>
         {axes.map((a) => (
