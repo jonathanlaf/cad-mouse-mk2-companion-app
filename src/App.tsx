@@ -78,6 +78,7 @@ function App() {
   const [cube, setCube] = useState({ x: 0, y: 0, z: 0 });
   const [cubeView, setCubeView] = useState({ zoom: 1, offset: { x: 0, y: 0 } });
   const [draggingCube, setDraggingCube] = useState(false);
+  const [panningCube, setPanningCube] = useState(false);
   const dragStart = useRef({ pointerX: 0, pointerY: 0, cubeX: 0, cubeY: 0 });
   useEffect(() => {
     if (!simulationRunning) return;
@@ -233,6 +234,7 @@ function App() {
                   <div
                     className={`cube-stage ${viewMode}`}
                     onPointerDown={(e) => {
+                      if (e.button !== 0 && e.button !== 1) return;
                       e.currentTarget.setPointerCapture(e.pointerId);
                       setSimulationRunning(false);
                       dragStart.current = {
@@ -241,7 +243,8 @@ function App() {
                         cubeX: cube.x,
                         cubeY: cube.y,
                       };
-                      setDraggingCube(true);
+                      if (e.button === 1) setPanningCube(true);
+                      else setDraggingCube(true);
                     }}
                     onWheel={(e) => {
                       e.preventDefault();
@@ -259,8 +262,17 @@ function App() {
                         }};
                       });
                     }}
+                    onContextMenu={(e) => e.preventDefault()}
                     onPointerMove={(e) => {
-                      if (draggingCube)
+                      if (panningCube)
+                        setCubeView((current) => ({
+                          ...current,
+                          offset: {
+                            x: current.offset.x + e.movementX,
+                            y: current.offset.y + e.movementY,
+                          },
+                        }));
+                      else if (draggingCube)
                         setCube((current) => ({
                           x: dragStart.current.cubeX - (e.clientY - dragStart.current.pointerY) * 0.7,
                           y: dragStart.current.cubeY + (e.clientX - dragStart.current.pointerX) * 0.7,
@@ -270,8 +282,12 @@ function App() {
                     onPointerUp={(e) => {
                       e.currentTarget.releasePointerCapture(e.pointerId);
                       setDraggingCube(false);
+                      setPanningCube(false);
                     }}
-                    onPointerCancel={() => setDraggingCube(false)}
+                    onPointerCancel={() => {
+                      setDraggingCube(false);
+                      setPanningCube(false);
+                    }}
                   >
                     <div
                       className="cube"
