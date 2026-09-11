@@ -23,6 +23,11 @@ The desktop shell is initialized under `src-tauri/`. HID discovery and runtime
 configuration will be implemented in its Rust backend; the simulator remains
 the default so UI work is testable before the physical mouse arrives.
 
+The wire contract is kept in [`src/protocol.ts`](src/protocol.ts). It validates
+and encodes the 64-byte vendor HID Feature packets used for runtime axis tuning,
+reset, and device-info decoding. This module is independent of the native
+transport so packet handling can be tested without hardware.
+
 ## Planned device workflow
 
 1. Discover the connected mouse and read firmware version/profile.
