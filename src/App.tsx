@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
+import { encodeSetAxis, type AxisRuntimeValues } from "./protocol";
 import "./App.css";
 import "./layout.css";
 import "./fullscreen.css";
@@ -163,6 +164,28 @@ function App() {
       signs: all(current.signs[axis]),
       enabled: all(current.enabled[axis]),
     }));
+    const current = profile;
+    axes.forEach((target) => {
+      void syncAxis(target, {
+        gain: current.gains[axis],
+        deadzone: current.deadzones[axis],
+        smoothingTauSeconds: current.smoothingTauSeconds[axis],
+        responseExponent: current.responseExponent[axis],
+        sign: current.signs[axis] as 1 | -1,
+        enabled: current.enabled[axis],
+      });
+    });
+  };
+  const syncAxis = async (axis: Axis, values: AxisRuntimeValues) => {
+    if (!devicePath) return;
+    try {
+      await invoke("set_hid_feature", {
+        path: devicePath,
+        payload: Array.from(encodeSetAxis(axis, values)),
+      });
+    } catch {
+      alert("The device rejected the runtime setting update.");
+    }
   };
   const selectPlane = (plane: string) => {
     setViewPlane(plane);
@@ -451,6 +474,7 @@ function App() {
               setAxis={setSelectedAxis}
               update={update}
               applyAxisToAll={applyAxisToAll}
+              syncAxis={syncAxis}
               points={curvePoints}
             />
           )}
@@ -497,6 +521,7 @@ function CurveView({
   setAxis,
   update,
   applyAxisToAll,
+  syncAxis,
   points,
 }: {
   profile: typeof defaultProfile;
@@ -504,6 +529,7 @@ function CurveView({
   setAxis: (a: Axis) => void;
   update: (k: string, v: unknown) => void;
   applyAxisToAll: (a: Axis) => void;
+  syncAxis: (a: Axis, values: AxisRuntimeValues) => void;
   points: number[];
 }) {
   const exponent = profile.responseExponent[axis];
@@ -578,10 +604,11 @@ function CurveView({
               step=".1"
               value={exponent}
               onChange={(e) =>
-                update("responseExponent", {
-                  ...profile.responseExponent,
-                  [axis]: Number(e.target.value),
-                })
+                (() => {
+                  const next = { ...profile, responseExponent: { ...profile.responseExponent, [axis]: Number(e.target.value) } };
+                  update("responseExponent", next.responseExponent);
+                  syncAxis(axis, { gain: next.gains[axis], deadzone: next.deadzones[axis], smoothingTauSeconds: next.smoothingTauSeconds[axis], responseExponent: next.responseExponent[axis], sign: next.signs[axis] as 1 | -1, enabled: next.enabled[axis] });
+                })()
               }
             />
           </label>
@@ -594,10 +621,11 @@ function CurveView({
               max="60"
               value={profile.gains[axis]}
               onChange={(e) =>
-                update("gains", {
-                  ...profile.gains,
-                  [axis]: Number(e.target.value),
-                })
+                (() => {
+                  const next = { ...profile, gains: { ...profile.gains, [axis]: Number(e.target.value) } };
+                  update("gains", next.gains);
+                  syncAxis(axis, { gain: next.gains[axis], deadzone: next.deadzones[axis], smoothingTauSeconds: next.smoothingTauSeconds[axis], responseExponent: next.responseExponent[axis], sign: next.signs[axis] as 1 | -1, enabled: next.enabled[axis] });
+                })()
               }
             />
           </label>
@@ -610,10 +638,11 @@ function CurveView({
               max="50"
               value={profile.deadzones[axis]}
               onChange={(e) =>
-                update("deadzones", {
-                  ...profile.deadzones,
-                  [axis]: Number(e.target.value),
-                })
+                (() => {
+                  const next = { ...profile, deadzones: { ...profile.deadzones, [axis]: Number(e.target.value) } };
+                  update("deadzones", next.deadzones);
+                  syncAxis(axis, { gain: next.gains[axis], deadzone: next.deadzones[axis], smoothingTauSeconds: next.smoothingTauSeconds[axis], responseExponent: next.responseExponent[axis], sign: next.signs[axis] as 1 | -1, enabled: next.enabled[axis] });
+                })()
               }
             />
           </label>
@@ -628,10 +657,11 @@ function CurveView({
               step=".01"
               value={profile.smoothingTauSeconds[axis]}
               onChange={(e) =>
-                update("smoothingTauSeconds", {
-                  ...profile.smoothingTauSeconds,
-                  [axis]: Number(e.target.value),
-                })
+                (() => {
+                  const next = { ...profile, smoothingTauSeconds: { ...profile.smoothingTauSeconds, [axis]: Number(e.target.value) } };
+                  update("smoothingTauSeconds", next.smoothingTauSeconds);
+                  syncAxis(axis, { gain: next.gains[axis], deadzone: next.deadzones[axis], smoothingTauSeconds: next.smoothingTauSeconds[axis], responseExponent: next.responseExponent[axis], sign: next.signs[axis] as 1 | -1, enabled: next.enabled[axis] });
+                })()
               }
             />
           </label>
