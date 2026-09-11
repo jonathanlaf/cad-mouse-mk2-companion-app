@@ -224,7 +224,10 @@ function App() {
                   Scenario{" "}
                   <select
                     value={scenario}
-                    onChange={(e) => setScenario(e.target.value)}
+                    onChange={(e) => {
+                      setScenario(e.target.value);
+                      setSimulationRunning(true);
+                    }}
                   >
                     <option value="idle">Idle</option>
                     <option value="drift">Drift</option>
