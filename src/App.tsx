@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
-import { decodeDeviceInfo, encodeReset, encodeSetAxis, type AxisRuntimeValues } from "./protocol";
+import { decodeDeviceInfo, encodeReset, encodeSetAxis, encodeSetGlobal, type AxisRuntimeValues } from "./protocol";
 import "./App.css";
 import "./layout.css";
 import "./fullscreen.css";
@@ -201,6 +201,16 @@ function App() {
       responseExponent: profile.responseExponent[axis],
       sign: profile.signs[axis] as 1 | -1,
       enabled: profile.enabled[axis],
+    })));
+    const globals: Array<[number, number]> = [
+      [1, profile.axisLimit], [2, profile.calibrationMaxDrift],
+      [3, profile.ledBrightness], [4, profile.idleSleepTimeoutMs],
+      [5, profile.telemetryEveryLoops], [6, profile.i2cTimeoutMs],
+      [7, profile.sensorReadRetries], [8, profile.watchdogTimeoutMs],
+    ];
+    await Promise.all(globals.map(([field, value]) => invoke("set_hid_feature", {
+      path: devicePath,
+      payload: Array.from(encodeSetGlobal(field, value)),
     })));
   };
   const resetDeviceTuning = async () => {

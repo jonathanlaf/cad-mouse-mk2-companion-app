@@ -4,6 +4,7 @@ export const CONFIG_REPORT_BYTES = 64;
 export const CONFIG_PROTOCOL_VERSION = 1;
 export const COMMAND_RESET = 0x01;
 export const COMMAND_SET_AXIS = 0x02;
+export const COMMAND_SET_GLOBAL = 0x04;
 export const RESPONSE_MARKER = 0x80;
 
 export type ProtocolAxis = "Tx" | "Ty" | "Tz" | "Rx" | "Ry" | "Rz";
@@ -47,6 +48,17 @@ export function encodeSetAxis(axis: ProtocolAxis, values: AxisRuntimeValues): Ui
 export function encodeReset(): Uint8Array {
   const packet = new Uint8Array(CONFIG_REPORT_BYTES);
   packet[0] = COMMAND_RESET;
+  return packet;
+}
+
+/** Encodes a global profile field. Float calibration drift uses milli-units. */
+export function encodeSetGlobal(field: number, value: number): Uint8Array {
+  if (!Number.isFinite(value) || field < 1 || field > 8) throw new Error("Invalid global setting");
+  const packet = new Uint8Array(CONFIG_REPORT_BYTES);
+  const view = new DataView(packet.buffer);
+  packet[0] = COMMAND_SET_GLOBAL;
+  packet[1] = field;
+  view.setUint32(2, field === 2 ? Math.round(value * 1000) : Math.round(value), true);
   return packet;
 }
 
