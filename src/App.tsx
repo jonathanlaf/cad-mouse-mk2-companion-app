@@ -368,6 +368,9 @@ function App() {
             Export profile
           </button>
           {connected && <>
+            <button className="button secondary" onClick={() => devicePath && void refreshDeviceAxes(devicePath)}>
+              Refresh from device
+            </button>
             <button className="button secondary" onClick={syncProfile}>
               Send profile to device
             </button>
