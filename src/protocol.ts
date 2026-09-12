@@ -85,6 +85,21 @@ export function decodeAxisResponse(packet: Uint8Array): AxisRuntimeValues {
   return { gain: view.getFloat32(8, true), deadzone: view.getFloat32(12, true), smoothingTauSeconds: view.getFloat32(16, true), responseExponent: view.getFloat32(20, true), sign: sign as 1 | -1, enabled: packet[25] !== 0 };
 }
 
+export function decodeGlobalResponse(packet: Uint8Array) {
+  if (packet.length < 26 || packet[0] !== 0x82) throw new Error("Invalid global response");
+  const view = new DataView(packet.buffer, packet.byteOffset);
+  return {
+    axisLimit: view.getFloat32(8, true),
+    calibrationMaxDrift: view.getFloat32(12, true),
+    ledBrightness: packet[16],
+    idleSleepTimeoutMs: view.getUint32(17, true),
+    telemetryEveryLoops: packet[21],
+    i2cTimeoutMs: packet[22],
+    sensorReadRetries: packet[23],
+    watchdogTimeoutMs: view.getUint16(24, true),
+  };
+}
+
 export function decodeDeviceInfo(packet: Uint8Array) {
   if (packet.length < 8 || packet[0] !== RESPONSE_MARKER) throw new Error("Invalid device response");
   const profileEnd = packet.indexOf(0, 8);

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
-import { decodeDeviceInfo, encodeReset, encodeSetAxis, encodeSetGlobal, type AxisRuntimeValues } from "./protocol";
+import { decodeAxisResponse, decodeDeviceInfo, decodeGlobalResponse, encodeGetAxis, encodeGetGlobal, encodeReset, encodeSetAxis, encodeSetGlobal, type AxisRuntimeValues } from "./protocol";
 import "./App.css";
 import "./layout.css";
 import "./fullscreen.css";
@@ -223,6 +223,26 @@ function App() {
       alert("The device rejected the runtime reset.");
     }
   };
+  const refreshDeviceAxes = async (path: string) => {
+    const values = {} as Record<Axis, AxisRuntimeValues>;
+    for (const axis of axes) {
+      await invoke("set_hid_feature", { path, payload: Array.from(encodeGetAxis(axis)) });
+      const packet = await invoke<number[]>("get_hid_feature", { path });
+      values[axis] = decodeAxisResponse(Uint8Array.from(packet));
+    }
+    setProfile((current) => ({
+      ...current,
+      gains: Object.fromEntries(axes.map((axis) => [axis, values[axis].gain])) as typeof current.gains,
+      deadzones: Object.fromEntries(axes.map((axis) => [axis, values[axis].deadzone])) as typeof current.deadzones,
+      smoothingTauSeconds: Object.fromEntries(axes.map((axis) => [axis, values[axis].smoothingTauSeconds])) as typeof current.smoothingTauSeconds,
+      responseExponent: Object.fromEntries(axes.map((axis) => [axis, values[axis].responseExponent])) as typeof current.responseExponent,
+      signs: Object.fromEntries(axes.map((axis) => [axis, values[axis].sign])) as typeof current.signs,
+      enabled: Object.fromEntries(axes.map((axis) => [axis, values[axis].enabled])) as typeof current.enabled,
+    }));
+    await invoke("set_hid_feature", { path, payload: Array.from(encodeGetGlobal()) });
+    const globals = decodeGlobalResponse(Uint8Array.from(await invoke<number[]>("get_hid_feature", { path })));
+    setProfile((current) => ({ ...current, ...globals }));
+  };
   const selectPlane = (plane: string) => {
     setViewPlane(plane);
     const rotations: Record<string, { x: number; y: number; z: number }> = {
@@ -288,6 +308,7 @@ function App() {
         const info = decodeDeviceInfo(Uint8Array.from(packet));
         setDeviceInfo({ firmware: info.firmware, profile: info.profile });
         setDeviceSyncStatus("synced");
+        await refreshDeviceAxes(device.path);
       } catch {
         setDeviceInfo(null);
       }
