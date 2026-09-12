@@ -94,6 +94,7 @@ function App() {
   const [devicePath, setDevicePath] = useState<string | null>(null);
   const [deviceLabel, setDeviceLabel] = useState("Simulator mode");
   const [deviceInfo, setDeviceInfo] = useState<{ firmware: string; profile: string } | null>(null);
+  const [deviceSyncStatus, setDeviceSyncStatus] = useState<"idle" | "syncing" | "synced" | "reset">("idle");
   const [scenario, setScenario] = useState("idle");
   const [simulationRunning, setSimulationRunning] = useState(true);
   const [viewMode, setViewMode] = useState<"perspective" | "isometric">(
@@ -179,12 +180,15 @@ function App() {
   };
   const syncAxis = async (axis: Axis, values: AxisRuntimeValues) => {
     if (!devicePath) return;
+    setDeviceSyncStatus("syncing");
     try {
       await invoke("set_hid_feature", {
         path: devicePath,
         payload: Array.from(encodeSetAxis(axis, values)),
       });
+      setDeviceSyncStatus("synced");
     } catch {
+      setDeviceSyncStatus("idle");
       alert("The device rejected the runtime setting update.");
     }
   };
@@ -203,6 +207,8 @@ function App() {
     if (!devicePath) return;
     try {
       await invoke("set_hid_feature", { path: devicePath, payload: Array.from(encodeReset()) });
+      setProfile(defaultProfile);
+      setDeviceSyncStatus("reset");
     } catch {
       alert("The device rejected the runtime reset.");
     }
@@ -252,6 +258,7 @@ function App() {
       setDevicePath(null);
       setDeviceLabel("Simulator mode");
       setDeviceInfo(null);
+      setDeviceSyncStatus("idle");
       return;
     }
     try {
@@ -270,6 +277,7 @@ function App() {
         const packet = await invoke<number[]>("get_hid_feature", { path: device.path });
         const info = decodeDeviceInfo(Uint8Array.from(packet));
         setDeviceInfo({ firmware: info.firmware, profile: info.profile });
+        setDeviceSyncStatus("synced");
       } catch {
         setDeviceInfo(null);
       }
@@ -299,6 +307,7 @@ function App() {
             {connected
               ? `USB HID · firmware ${deviceInfo?.firmware ?? "unknown"} · profile ${deviceInfo?.profile ?? "unknown"}`
               : "Simulator active · no hardware required"}
+            {connected && ` · ${deviceSyncStatus === "syncing" ? "sending…" : deviceSyncStatus === "reset" ? "runtime reset" : "runtime settings synced"}`}
           </span>
         </div>
         <div className="actions">
