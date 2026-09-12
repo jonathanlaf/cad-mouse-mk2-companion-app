@@ -5,6 +5,8 @@ export const CONFIG_PROTOCOL_VERSION = 1;
 export const COMMAND_RESET = 0x01;
 export const COMMAND_SET_AXIS = 0x02;
 export const COMMAND_SET_GLOBAL = 0x04;
+export const COMMAND_GET_AXIS = 0x03;
+export const COMMAND_GET_GLOBAL = 0x05;
 export const RESPONSE_MARKER = 0x80;
 
 export type ProtocolAxis = "Tx" | "Ty" | "Tz" | "Rx" | "Ry" | "Rz";
@@ -60,6 +62,27 @@ export function encodeSetGlobal(field: number, value: number): Uint8Array {
   packet[1] = field;
   view.setUint32(2, field === 2 ? Math.round(value * 1000) : Math.round(value), true);
   return packet;
+}
+
+export function encodeGetAxis(axis: ProtocolAxis): Uint8Array {
+  const packet = new Uint8Array(CONFIG_REPORT_BYTES);
+  packet[0] = COMMAND_GET_AXIS;
+  packet[1] = axisIndex(axis);
+  return packet;
+}
+
+export function encodeGetGlobal(): Uint8Array {
+  const packet = new Uint8Array(CONFIG_REPORT_BYTES);
+  packet[0] = COMMAND_GET_GLOBAL;
+  return packet;
+}
+
+export function decodeAxisResponse(packet: Uint8Array): AxisRuntimeValues {
+  if (packet.length < 26 || packet[0] !== 0x81) throw new Error("Invalid axis response");
+  const view = new DataView(packet.buffer, packet.byteOffset);
+  const sign = packet[24] === 0xff ? -1 : packet[24] === 1 ? 1 : 0;
+  if (!sign) throw new Error("Invalid axis response sign");
+  return { gain: view.getFloat32(8, true), deadzone: view.getFloat32(12, true), smoothingTauSeconds: view.getFloat32(16, true), responseExponent: view.getFloat32(20, true), sign: sign as 1 | -1, enabled: packet[25] !== 0 };
 }
 
 export function decodeDeviceInfo(packet: Uint8Array) {
