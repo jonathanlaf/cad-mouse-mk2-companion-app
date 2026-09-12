@@ -157,6 +157,21 @@ function App() {
     }, 100);
     return () => clearInterval(id);
   }, [scenario, simulationRunning, draggingCube]);
+  useEffect(() => {
+    if (!connected || !devicePath) return;
+    const id = setInterval(() => {
+      void invoke<Array<{ path: string }>>("list_hid_devices").then((devices) => {
+        if (!devices.some((device) => device.path === devicePath)) {
+          setConnected(false);
+          setDevicePath(null);
+          setDeviceInfo(null);
+          setDeviceLabel("Simulator mode");
+          setDeviceSyncStatus("idle");
+        }
+      }).catch(() => undefined);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [connected, devicePath]);
   const latest = samples.at(-1)?.values;
   const curvePoints = useMemo(
     () => Array.from({ length: 41 }, (_, i) => i / 40),
