@@ -42,3 +42,12 @@ transport so packet handling can be tested without hardware.
 npm run build
 cargo tauri build
 ```
+
+## Hardware validation checklist
+
+This WIP has been verified only with the simulator and compile checks. When the
+mouse arrives, validate HID enumeration and firmware/profile readback first,
+then exercise one-axis live changes, all-axis synchronization, reset, unplug /
+reconnect, sensor-disconnect calibration errors, and sleep/wake behavior. Record
+the observed firmware version, latency, and any platform-specific permissions
+before calling a build production-ready.

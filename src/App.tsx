@@ -225,24 +225,28 @@ function App() {
   };
   const syncProfile = async () => {
     if (!devicePath) return;
-    await Promise.all(axes.map((axis) => syncAxis(axis, {
-      gain: profile.gains[axis],
-      deadzone: profile.deadzones[axis],
-      smoothingTauSeconds: profile.smoothingTauSeconds[axis],
-      responseExponent: profile.responseExponent[axis],
-      sign: profile.signs[axis] as 1 | -1,
-      enabled: profile.enabled[axis],
-    })));
-    const globals: Array<[number, number]> = [
-      [1, profile.axisLimit], [2, profile.calibrationMaxDrift],
-      [3, profile.ledBrightness], [4, profile.idleSleepTimeoutMs],
-      [5, profile.telemetryEveryLoops], [6, profile.i2cTimeoutMs],
-      [7, profile.sensorReadRetries], [8, profile.watchdogTimeoutMs],
-    ];
-    await Promise.all(globals.map(([field, value]) => invoke("set_hid_feature", {
-      path: devicePath,
-      payload: Array.from(encodeSetGlobal(field, value)),
-    })));
+    setDeviceSyncStatus("syncing");
+    try {
+      await Promise.all(axes.map((axis) => syncAxis(axis, {
+        gain: profile.gains[axis], deadzone: profile.deadzones[axis],
+        smoothingTauSeconds: profile.smoothingTauSeconds[axis],
+        responseExponent: profile.responseExponent[axis],
+        sign: profile.signs[axis] as 1 | -1, enabled: profile.enabled[axis],
+      })));
+      const globals: Array<[number, number]> = [
+        [1, profile.axisLimit], [2, profile.calibrationMaxDrift],
+        [3, profile.ledBrightness], [4, profile.idleSleepTimeoutMs],
+        [5, profile.telemetryEveryLoops], [6, profile.i2cTimeoutMs],
+        [7, profile.sensorReadRetries], [8, profile.watchdogTimeoutMs],
+      ];
+      await Promise.all(globals.map(([field, value]) => invoke("set_hid_feature", {
+        path: devicePath, payload: Array.from(encodeSetGlobal(field, value)),
+      })));
+      setDeviceSyncStatus("synced");
+    } catch {
+      setDeviceSyncStatus("idle");
+      alert("The device rejected the profile update.");
+    }
   };
   const resetDeviceTuning = async () => {
     if (!devicePath) return;
