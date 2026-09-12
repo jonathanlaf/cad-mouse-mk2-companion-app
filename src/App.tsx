@@ -56,6 +56,22 @@ const defaultProfile = {
   watchdogTimeoutMs: 4000,
 };
 
+function isValidProfile(value: unknown): value is typeof defaultProfile {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  const maps = ["gains", "deadzones", "smoothingTauSeconds", "responseExponent", "signs", "enabled"];
+  if (typeof candidate.name !== "string" || !Number.isInteger(candidate.version)) return false;
+  const globals = ["calibrationSamples", "calibrationSampleIntervalMs", "calibrationHoldMs", "calibrationMaxDrift", "axisLimit", "ledBrightness", "idleSleepTimeoutMs", "telemetryEveryLoops", "i2cTimeoutMs", "sensorReadRetries", "watchdogTimeoutMs"];
+  if (!globals.every((key) => typeof candidate[key] === "number" && Number.isFinite(candidate[key]))) return false;
+  return maps.every((key) => {
+    const map = candidate[key];
+    return !!map && typeof map === "object" && axes.every((axis) => {
+      const entry = (map as Record<string, unknown>)[axis];
+      return key === "enabled" ? typeof entry === "boolean" : typeof entry === "number" && Number.isFinite(entry);
+    });
+  });
+}
+
 function scenarioValue(s: string, a: Axis, t: number) {
   const p = axes.indexOf(a) * 0.7;
   if (s === "sweep") return Math.sin(t * 1.8 + p) * 260;
@@ -275,7 +291,9 @@ function App() {
     const r = new FileReader();
     r.onload = () => {
       try {
-        setProfile(JSON.parse(String(r.result)));
+        const imported = JSON.parse(String(r.result));
+        if (!isValidProfile(imported)) throw new Error("invalid profile");
+        setProfile(imported);
       } catch {
         alert("Invalid profile JSON");
       }
