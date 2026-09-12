@@ -259,6 +259,17 @@ function App() {
     const globals = decodeGlobalResponse(Uint8Array.from(await invoke<number[]>("get_hid_feature", { path })));
     setProfile((current) => ({ ...current, ...globals }));
   };
+  const refreshFromDevice = async () => {
+    if (!devicePath) return;
+    setDeviceSyncStatus("syncing");
+    try {
+      await refreshDeviceAxes(devicePath);
+      setDeviceSyncStatus("synced");
+    } catch {
+      setDeviceSyncStatus("idle");
+      alert("Could not read the runtime profile from the device.");
+    }
+  };
   const selectPlane = (plane: string) => {
     setViewPlane(plane);
     const rotations: Record<string, { x: number; y: number; z: number }> = {
@@ -368,7 +379,7 @@ function App() {
             Export profile
           </button>
           {connected && <>
-            <button className="button secondary" onClick={() => devicePath && void refreshDeviceAxes(devicePath)}>
+            <button className="button secondary" onClick={() => void refreshFromDevice()}>
               Refresh from device
             </button>
             <button className="button secondary" onClick={syncProfile}>
