@@ -217,7 +217,7 @@ function App() {
     if (!devicePath) return;
     try {
       await invoke("set_hid_feature", { path: devicePath, payload: Array.from(encodeReset()) });
-      setProfile(defaultProfile);
+      await refreshDeviceAxes(devicePath);
       setDeviceSyncStatus("reset");
     } catch {
       alert("The device rejected the runtime reset.");
